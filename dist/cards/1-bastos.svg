@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360" role="img" aria-labelledby="title desc">
+  <title id="title">1 de Bastos</title>
+  <desc id="desc">As de la baraja española: un basto de madera con brotes y hojas verdes, amarillo y naranja.</desc>
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e34a1e"/><stop offset=".26" stop-color="#ffb31b"/>
+      <stop offset=".55" stop-color="#f4dc26"/><stop offset=".79" stop-color="#91b82b"/><stop offset="1" stop-color="#277e42"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#b9d832"/><stop offset=".48" stop-color="#328a46"/><stop offset="1" stop-color="#126c51"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-20%" width="160%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.4"/><feOffset dx="1.5" dy="3" result="blur"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".22"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="232" height="352" rx="9" fill="#fffdf6" stroke="#24312d" stroke-width="2.4"/>
+  <path d="M14 48V15h32M194 15h32v33M14 312v33h32M194 345h32v-33" fill="none" stroke="#bdc5b8" stroke-width="1.4"/>
+  <text x="18" y="39" font-family="Georgia,serif" font-size="28" font-weight="700" fill="#17231f">1</text>
+  <g transform="rotate(180 222 321)"><text x="222" y="344" text-anchor="middle" font-family="Georgia,serif" font-size="25" font-weight="700" fill="#17231f">1</text></g>
+  <g filter="url(#shadow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- tall, slightly curved branch club -->
+    <path d="M82 278 C92 246 105 214 118 183 C133 147 150 112 158 79
+      C161 64 153 51 161 37 C167 26 181 24 188 34 C193 43 188 51 197 60
+      C207 72 205 88 194 98 C185 106 174 103 166 99 C153 133 139 165 127 198
+      C114 232 104 260 96 288 C92 302 75 295 82 278Z"
+      fill="url(#wood)" stroke="#25372a" stroke-width="4.8"/>
+    <!-- natural bark bands and warm highlights -->
+    <path d="M166 39 C174 48 175 56 185 62 M161 72 C171 79 183 81 197 78
+      M145 126 C153 132 166 136 177 135 M130 168 C140 176 149 179 162 179
+      M111 220 C121 227 132 230 143 228 M96 263 C105 268 113 270 122 268"
+      fill="none" stroke="#d84c21" stroke-width="5" opacity=".9"/>
+    <path d="M171 42 C168 60 172 77 164 94 M151 119 C149 140 136 158 133 176
+      M126 190 C122 210 110 231 108 247 M102 256 C98 270 93 280 91 289"
+      fill="none" stroke="#fff06a" stroke-width="3.3" opacity=".95"/>
+    <!-- branching shoots -->
+    <g fill="none" stroke="#345e36" stroke-width="4">
+      <path d="M148 143 C130 134 123 124 120 110 M138 165 C153 153 166 150 179 153"/>
+      <path d="M117 213 C99 204 91 194 89 181 M108 238 C124 228 139 228 151 233"/>
+      <path d="M165 100 C181 100 191 107 197 119"/>
+    </g>
+    <!-- leaf pairs, deliberately hand-drawn and varied -->
+    <g stroke="#285c38" stroke-width="2.2">
+      <path d="M127 128 C110 126 105 113 108 104 C120 106 129 115 127 128Z" fill="url(#leaf)"/>
+      <path d="M126 128 C121 111 128 101 137 98 C143 109 138 121 126 128Z" fill="#82b933"/>
+      <path d="M157 158 C166 141 180 141 188 147 C182 159 170 165 157 158Z" fill="url(#leaf)"/>
+      <path d="M158 157 C169 143 182 146 187 155 C179 165 168 165 158 157Z" fill="#b6d537"/>
+      <path d="M96 198 C79 196 72 184 76 174 C89 175 98 184 96 198Z" fill="url(#leaf)"/>
+      <path d="M95 197 C89 181 97 171 107 170 C112 182 107 192 95 197Z" fill="#94be31"/>
+      <path d="M130 230 C136 214 151 210 160 216 C155 229 143 236 130 230Z" fill="url(#leaf)"/>
+      <path d="M132 230 C143 215 156 219 160 229 C151 238 140 237 132 230Z" fill="#b9d831"/>
+      <path d="M184 106 C189 91 201 88 209 93 C205 105 195 111 184 106Z" fill="url(#leaf)"/>
+      <path d="M185 106 C194 93 206 96 210 104 C202 112 193 112 185 106Z" fill="#b9d831"/>
+    </g>
+    <g fill="none" stroke="#e6ed88" stroke-width="1.4" opacity=".95">
+      <path d="M112 109q8 8 14 17M132 103q-3 11-6 22M181 148q-11 4-22 10M79 178q7 9 16 16M153 218q-12 6-22 11M203 94q-9 8-18 12"/>
+    </g>
+    <!-- small buds and knuckles -->
+    <g fill="#f6c735" stroke="#385034" stroke-width="2">
+      <circle cx="150" cy="146" r="3.4"/><circle cx="116" cy="214" r="3.2"/><circle cx="167" cy="100" r="3.1"/>
+    </g>
+  </g>
+  <text x="120" y="333" text-anchor="middle" font-family="Arial,sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="#425047">BASTOS</text>
+</svg>
