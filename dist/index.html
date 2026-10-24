@@ -43,10 +43,10 @@
 <header class="topbar">
  <div class="brand"><div class="brandmark" aria-label="Mazo de baraja española de 40 cartas"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="8" width="26" height="34" rx="4" fill="#ed7f35" stroke="#ffd34e" stroke-width="2" transform="rotate(-13 21 25)"/><rect x="15" y="5" width="26" height="35" rx="4" fill="#2d7db8" stroke="#ffd34e" stroke-width="2" transform="rotate(8 28 22)"/><rect x="11" y="8" width="26" height="35" rx="4" fill="#fff8e6" stroke="#174b37" stroke-width="2"/><path d="M24 15 27 20 33 20 28 24 30 30 24 27 18 30 20 24 15 20 21 20Z" fill="#e5a619"/><text x="24" y="38" text-anchor="middle" font-size="7" font-weight="900" fill="#174b37">40</text></svg></div><div class="brand-name">Truco Venezolano<small>en vivo · comunidad</small></div></div>
  <nav class="nav"><button class="active" data-nav="inicio">Inicio</button><button data-nav="mesas">Mesas</button><button data-nav="perfil">Mi perfil</button></nav>
- <div class="right-head"><div class="coin-pill"><span class="coin">¢</span><span id="topBalance">2.500</span><span style="color:#b7c7ba;font-size:10px">DEMO</span></div><button class="btn lime small" id="topUpBtn">Recargar</button><div class="avatar">PE</div></div>
+ <div class="right-head"><div class="coin-pill"><span class="coin">¢</span><span id="topBalance">2.500</span><span style="color:#b7c7ba;font-size:10px">DEMO</span></div><button class="btn lime small" id="topUpBtn">Recargar</button><a href="cuenta.html" id="accountLink" class="btn light small" style="text-decoration:none">Entrar / Registrarse</a></div>
 </header>
 <main class="wrap" id="homeView">
- <div class="welcome"><div><div class="eyebrow">¡Qué más, Pedro!</div><h1>La mesa está servida.</h1><p class="sub">Entra a una partida o arma la tuya con tus panas.</p></div><button class="btn" id="createBtn">＋ &nbsp;Crear mesa</button></div>
+ <div class="welcome"><div><div class="eyebrow" id="welcomePlayer">¡Bienvenido a la mesa!</div><h1>La mesa está servida.</h1><p class="sub">Entra a una partida o arma la tuya con tus panas.</p></div><button class="btn" id="createBtn">＋ &nbsp;Crear mesa</button></div>
  <section class="hero lesson-hero" aria-label="Aprende truco con una carta">
  <div class="hero-copy"><div class="eyebrow">✦ APRENDE UNA JUGADA</div><div class="lesson-tags"><span id="lessonType"></span><span id="lessonCount"></span></div><h2 id="lessonTitle"></h2><p id="lessonText"></p><div class="lesson-call"><span>EN LA MESA</span><strong id="lessonCall"></strong><small id="lessonCaution"></small></div><div class="lesson-actions"><button class="btn lime" id="findBtn">⌕ Buscar mesa →</button><button class="lesson-next" id="dealNewCards">↻ Otra carta</button><button class="lesson-pause" id="pauseLessons" aria-pressed="false" aria-label="Pausar ejemplos automáticos">Ⅱ Pausar</button></div><div class="lesson-foot">Ejemplos de aprendizaje · cambia cada 15 s <a href="https://www.ludoteka.com/juegos/truco-venezolano/reglas" target="_blank" rel="noopener">Reglas de referencia ↗</a></div></div>
  <div class="lesson-art"><div class="lesson-halo"></div><div class="lesson-face" id="heroCards"></div><strong class="lesson-card-name" id="lessonCardName"></strong><span class="lesson-condition" id="lessonCondition"></span></div></section>
@@ -128,5 +128,6 @@ $$('.filter').forEach(b=>b.onclick=()=>{$$('.filter').forEach(c=>c.classList.rem
 renderHeroCards();$$('[data-suit-icon]').forEach(el=>el.innerHTML=suitIcon(el.dataset.suitIcon,16));renderDeckGallery('all');$$('[data-deck-suit]').forEach(b=>b.onclick=()=>{$$('[data-deck-suit]').forEach(x=>x.classList.toggle('active',x===b));renderDeckGallery(b.dataset.deckSuit)});$('#dealNewCards').onclick=renderHeroCards;render();
 })();
 </script>
+<script src="vendor/supabase-2.118.0.js"></script><script src="account.js"></script>
 </body>
 </html>

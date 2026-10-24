@@ -1,0 +1,20 @@
+const {readFileSync}=require('node:fs');
+const vm=require('node:vm');
+const assert=require('node:assert/strict');
+const elements={};
+for(const id of ['accountForm','authMessage','authForms','signedIn','guestLink','accountName','accountSubmit','loginTab','signupTab','signOut','welcomePlayer','accountLink','nameField','displayName','passwordHint','password','email']) elements[id]={value:'',dataset:{},hidden:false,disabled:false,textContent:'',setAttribute(k,v){this[k]=v},reportValidity(){return true}};
+const calls=[];let result={data:{session:null},error:null};
+const auth={onAuthStateChange(){},getSession:async()=>({data:{session:null}}),signUp:async args=>(calls.push(['signup',args]),result),signInWithPassword:async args=>(calls.push(['login',args]),result),signOut:async args=>(calls.push(['logout',args]),{error:null})};
+vm.runInNewContext(readFileSync('dist/account.js','utf8'),{document:{getElementById:id=>elements[id]},window:{supabase:{createClient:()=>({auth})}}});
+(async()=>{
+ await new Promise(setImmediate);
+ elements.signupTab.onclick();elements.email.value='player@example.invalid';elements.displayName.value='  Pedro  ';elements.password.value='test-password';
+ await elements.accountForm.onsubmit({preventDefault(){}});
+ assert.equal(calls[0][1].options.data.display_name,'Pedro');assert.equal(calls[0][1].options.emailRedirectTo,'https://truco-venezolano-en-vivo.espinozap81.workers.dev/');assert.match(elements.authMessage.textContent,/confirmar/);assert.equal(elements.password.value,'');
+ elements.loginTab.onclick();result={error:{code:'invalid_credentials'}};
+ await elements.accountForm.onsubmit({preventDefault(){}});assert.match(elements.authMessage.textContent,/no coinciden/);assert.equal(elements.accountSubmit.disabled,false);
+ result={data:{session:{user:{user_metadata:{display_name:'<img src=x>'}}}}};
+ await elements.accountForm.onsubmit({preventDefault(){}});assert.equal(elements.accountName.textContent,'<img src=x>');assert.equal(elements.authForms.hidden,true);
+ await elements.signOut.onclick();assert.equal(calls.at(-1)[1].scope,'local');assert.equal(elements.authForms.hidden,false);
+ console.log('PASS: signup confirmation, login errors, text-only display name, login state and local logout. No real accounts or emails created.');
+})().catch(e=>{console.error(e);process.exitCode=1});
