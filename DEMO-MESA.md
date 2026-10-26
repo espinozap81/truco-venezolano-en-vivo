@@ -1,63 +1,73 @@
 # Mesa azul: prueba antes de publicar
 
-Esta rama reemplaza la antigua mano aleatoria por una demo local de Truco.
-No modifica pagos ni acredita monedas: los botones del lobby abren prácticas.
+Demo local con bots: mesa de lona azul y madera, cartas ilustradas originales,
+asientos en cruz y cartas propias grandes. No incorpora servidor multijugador.
+Los botones del lobby abren prácticas; no modifica pagos ni acredita monedas.
 
 ## Probar
-
-Desde la raíz del proyecto:
 
 ```sh
 python -m http.server 8765 --directory dist
 ```
 
-Abrir `http://localhost:8765/?mesa=1` para cuatro jugadores. El lobby conserva
-las entradas individuales y por parejas. Se juega contra bots en el navegador;
-esta rama no incorpora servidor multijugador ni sincronización entre usuarios.
+Abrir `http://localhost:8765/?mesa=1`. El botón Ensayar permite probar Tengo flor,
+Me envidan y Envidar a rivales bajos. Cada ensayo reinicia su marcador.
 
-- Tú abajo, compañero enfrente, rivales a los lados.
-- Elegir una carta en el turno propio. Las cartas jugadas se acumulan en cada
-  asiento con desplazamiento, dejando identificable la primera.
-- Los bots esperan de 3 a 6 segundos; «Prueba rápida» reduce la espera.
-- Las cartas se bloquean fuera de turno y mientras hay un canto pendiente.
-- El resultado conserva las cartas hasta pulsar «Siguiente mano».
-- El marcador continúa entre manos. Entrada a 12: etiqueta Fuera/Dentro;
-  victoria al alcanzar 24. La mano rota cada reparto.
+- Orden: tú → rival derecho → compañero enfrente → rival izquierdo. El mano
+  rota en cada reparto y el ganador de la baza inicia la siguiente.
+- Las cartas jugadas permanecen en su asiento, superpuestas dejando visible
+  parte de las anteriores. Se conservan los mismos nodos de cartas y vira
+  durante los turnos y cantos: no se reconstruye la mesa ni se reaniman cartas.
+- Bots con espera de 3–6 segundos; Prueba rápida reduce la espera. El jugador
+  humano no tiene límite para responder. Las cartas esperan los cantos.
+- Envido y Truco disponibles desde el primer turno. Una flor ajena sin cantar
+  no bloquea el botón Envido. Con flor propia, Envido ofrece declarar la ley;
+  Flor y Truco primero resuelve la flor y luego solicita el Truco.
+- El envite llega a ambos contrarios: cualquiera acepta por el equipo; solo
+  dos No quiero rechazan. Esta es la variante solicitada por el propietario.
+  Los cantos se ven junto al jugador y en el aviso central, con las respuestas
+  individuales. Los tantos se anotan inmediatamente, una sola vez, y el recibo
+  espera Continuar. Los marcadores quedan en esquinas de la mesa.
+- Flor se canta explícitamente. A ley y A ley o sin ley reservan la flor antes
+  de la primera carta; se canta antes de la segunda, de cantar Truco o de
+  aceptarlo. El pie debe cantarla en la primera. Sin ley declara ausencia de
+  flor. Cada jugador responde a la flor, y el recibo muestra su pago.
+- Entrada a 12 muestra Fuera/Dentro; victoria a 24. Hasta tres bazas, con pardas
+  y cierre anticipado. Las cartas permanecen hasta Siguiente mano.
 
 ## Reglas incluidas y límites
 
-Jerarquía por vira (Perico/Perica y sustitución por rey), dos o tres bazas,
-pardas, ganador abre la siguiente baza; Truco 3, Retruco 6, Vale 9 y Vale juego
-24, aceptación, rechazo y subidas alternas. Envite antes de la primera carta
-propia, dos tantos iniciales y «quiero y tantas más» con cantidad de 1 a 24;
-desempate por cercanía a la mano. El envite se anota antes del truco al cerrar
-la mano. Las flores se reconocen automáticamente y se comparan sin subidas.
+Jerarquía con vira (Perico/Perica y rey sustituto); Truco 3, Retruco 6, Vale 9 y
+Vale juego 24; envite antes de la primera carta propia, dos tantos iniciales,
+un tanto al rechazo inicial, subidas de 1 a 24 y desempate por mano. Una flor
+interrumpe el envite pendiente; si hay flores rivales se comparan por tres
+puntos, sin subidas. Flores de un solo equipo pagan tres por cada flor.
 
-La entrada a 12 solamente cambia el estado del marcador en esta prueba. No
-incorpora falta envido, contra flor, ni reglas especiales de puntuación por
-entrada. No permite intercalar un envite mientras se responde un truco.
-Estos límites también están visibles en «Reglas de prueba».
+No incluye falta envido, contra flor, reglas especiales de entrada, negociación
+completa de envites con ley ni envite intercalado durante respuesta a Truco.
+A ley en esta demo reserva la flor; no representa todo el reglamento. Estos
+límites aparecen también en Reglas. La prueba no se publica automáticamente.
 
-Referencia funcional consultada: https://www.ludoteka.com/juegos/truco-venezolano/reglas
-La configuración solicitada por el propietario es la referencia para 12/24.
+## Código y verificación
 
-## Archivos
-
-- `dist/truco-engine.js`: estado y reglas, sin dependencia de la interfaz.
-- `dist/mesa.js`: posiciones, controles, animación y temporizadores cancelables.
-- `dist/mesa.css`: lona azul, madera y adaptación de pantalla.
-- `dist/index.html`: integración con lobby y baraja ilustrada existente.
-
-## Verificación
+- `dist/truco-engine.js`: turnos, declaraciones, respuestas por equipo y tantos.
+- `dist/mesa.js`: actualización incremental de cartas, avisos y temporizadores.
+- `dist/mesa.css`: mesa, posiciones, marcadores, vira y adaptación móvil.
+- `dist/index.html`: integración con lobby y baraja original.
 
 ```sh
 node tests/engine.test.cjs
 node --check dist/mesa.js
 node --check dist/truco-engine.js
+# Solo para la prueba de interfaz (no requerido para jugar):
+npm install --no-save jsdom
+node tests/ui.test.cjs
 ```
 
-Pruebas de turnos inválidos, bloqueo por cantos, jerarquía y piezas, envite,
-subidas/rechazos, combinaciones de pardas, cierre en segunda baza, rotación,
-continuidad de marcador, umbrales 12/24 y 100 partidas completas con semilla.
+El motor prueba orden hacia la derecha, dos rechazos, aceptación por compañero,
+subidas, pagos inmediatos sin duplicados, flor explícita y reserva A ley,
+pardas, entrada 12/meta 24 y 100 partidas completas con semilla. La prueba de
+interfaz verifica identidad de cartas/vira entre cantos, turnos e historial,
+solicitud a ambos compañeros y pago explícito de flor.
 
-La rama requiere revisión antes de fusionar o actualizar el Worker publicado.
+Rama de revisión: `demo/mesa-azul-cruz`. Revisar antes de fusionar o publicar.

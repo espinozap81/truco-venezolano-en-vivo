@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {JSDOM}=require(process.env.TRUCO_JSDOM||'jsdom');
+const dom=new JSDOM('<main class="app"></main>',{runScripts:'outside-only'});
+const w=dom.window,queue=new Map();let seq=0;
+w.setTimeout=fn=>{queue.set(++seq,fn);return seq};w.clearTimeout=id=>queue.delete(id);
+for(const f of ['truco-engine.js','mesa.js'])w.eval(fs.readFileSync(path.join(__dirname,'../dist',f),'utf8'));
+const $=s=>w.document.querySelector(s),click=s=>{assert.ok($(s),s);$(s).click()},tick=()=>{const [id,fn]=queue.entries().next().value||[];assert.ok(fn,'expected scheduled reply');queue.delete(id);fn()};
+w.MesaDemo.start({renderCard:([n,s])=>`<span class="spanish-card">${n} ${s}</span>`});
+function practice(id){click('#mesaPractice');click(id)}
+practice('#mesaPracticeNo');
+const cards=[...w.document.querySelectorAll('.mesa-hand-card')],vira=$('#mesaVira > div').firstChild;
+assert.equal($('#mesaEnvido').disabled,false);assert.equal($('#mesaTruco').disabled,false);
+click('#mesaEnvido');assert.match($('#mesaCallPanel').textContent,/Rival derecho.*Esperando respuesta/s);
+tick();assert.equal($('#mesaScore0 strong').textContent,'0');assert.match($('#mesaCallPanel').textContent,/No quiero/);
+tick();assert.equal($('#mesaScore0 strong').textContent,'1');assert.match($('#mesaCallPanel').textContent,/Continuar/);
+cards.forEach((c,i)=>assert.equal($(`[data-mesa-card="${i}"]`),c));assert.equal($('#mesaVira > div').firstChild,vira);
+click('#mesaNoticeContinue');click('[data-mesa-card="0"]');const played=$('#mesaPile0 .mesa-played');assert.ok(played);
+click('#mesaLog');assert.equal($('#mesaPile0 .mesa-played'),played);assert.equal($('[data-mesa-card="1"]'),cards[1]);
+tick();assert.equal($('#mesaPile0 .mesa-played'),played);assert.equal($('#mesaVira > div').firstChild,vira);
+practice('#mesaPracticeEnvite');assert.match($('#mesaCallPanel').textContent,/AVISO A TI Y A TU COMPAÑERO/);click('#mesaNo');assert.match($('#mesaCallPanel').textContent,/compañero todavía puede aceptar/);tick();assert.equal($('#mesaScore1 strong').textContent,'1');
+practice('#mesaPracticeFlor');assert.equal($('#mesaFlor').disabled,false);assert.equal($('#mesaScore0 strong').textContent,'0');click('#mesaFlor');tick();tick();tick();assert.equal($('#mesaScore0 strong').textContent,'3');assert.match($('#mesaCallPanel').textContent,/flor/i);
+w.MesaDemo.leave();assert.equal(queue.size,0);dom.window.close();
+console.log('Passed: stable card/vira DOM across calls, scores, turns and history; team refusals; explicit flower payment.');
