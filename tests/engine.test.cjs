@@ -60,6 +60,21 @@ function coveredHand(bluff=false){
 assert(coveredHand(false).history.some(x=>x.includes('sí mató')));
 assert(coveredHand(true).history.some(x=>x.includes('embuste')));
 
+// Nuevos envites a tantos fijos, revidadas y falta del equipo delantero.
+g=setup();g.scores=[17,8];assert.equal(g.falta(),7);
+assert(g.call(0,'envido',5));assert.equal(g.pending.amount,5);assert.equal(g.pending.decline,1);
+assert(g.respond(1,'raise',4));assert.equal(g.pending.amount,9);assert.equal(g.pending.decline,5);
+assert(g.respond(2,'raiseFalta'));assert.equal(g.pending.amount,7);assert.equal(g.pending.decline,9);
+assert.equal(g.pending.isFalta,true);assert.equal(g.respond(1,'raise',2),false);
+assert(g.respond(1,'no'));assert(g.respond(3,'no'));assert.deepEqual(g.scores,[17,8]);
+assert.equal(g.awards[0].points,9);assert(g.endHand(1,1,'test'));assert.deepEqual(g.scores,[26,8]);
+assert.equal(g.matchWinner,0,'envite se cobra antes del truco, incluso si este gana el rival');
+g=setup();g.scores=[18,10];assert(g.call(0,'envido','falta'));
+assert.equal(g.pending.amount,6);assert.equal(g.pending.decline,1);assert(g.respond(1,'no'));assert(g.respond(3,'no'));assert.equal(g.awards[0].points,1);
+assert.equal(g.scores[0],18);assert(g.endHand(0,1,'test'));assert.equal(g.scores[0],20);
+g=setup();assert.equal(g.call(0,'envido',0),false);assert.equal(g.call(0,'envido',25),false);
+assert(g.call(0,'envido',24));assert.equal(g.pending.amount,24);
+
 // Random hands: 100 complete matches, all explicit human/bot responses and flowers.
 for(let run=0;run<100;run++){
  const m=new Match({count:run%2?2:4,rng});let steps=0;
