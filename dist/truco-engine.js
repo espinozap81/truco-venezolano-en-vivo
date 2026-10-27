@@ -48,12 +48,18 @@ class Match{
  }
  makeRequest(kind,from,amount,decline,extra={}){return {id:++this.callId,kind,from,amount,decline,targets:this.order(from+1).filter(p=>team(p)!==team(from)),responses:{},...extra}}
  callName(v){return ({3:'Truco',6:'Retruco',9:'Vale 9',24:'Vale juego'})[v]||'Truco'}
- call(p,kind){
+ falta(){return Math.max(1,24-Math.max(...this.scores))}
+ call(p,kind,points=2){
   if(kind==='envido'){
    if(!this.canEnvido(p))return false;
    if(this.needsFlor(p)&&!['aley','mixed'].includes(this.law[p]))return this.error('Canta Flor o A ley antes del envite.');
+   const isFalta=points==='falta';
+   if(!isFalta&&(!Number.isInteger(points)||points<1||points>24))return this.error('Los tantos deben estar entre 1 y 24.');
    this.envidoDone=true;const mode=['aley','mixed'].includes(this.law[p])?'open':'sinley';
-   this.pending=this.makeRequest(kind,p,2,1,{mode});this.say(p,mode==='open'?'A ley o sin ley, envido':'Envido');
+   const amount=isFalta?this.falta():points;
+   const canto=isFalta?'Envido la falta':points===2?'Envido':'Envido '+points+' tantos';
+   this.pending=this.makeRequest(kind,p,amount,1,{mode,isFalta,canto});
+   this.say(p,mode==='open'?'A ley o sin ley, '+canto:canto);
   }else if(kind==='truco'){
    if(!this.canTruco(p))return false;if(this.needsFlor(p))return this.error('Debes cantar tu flor antes de cantar Truco.');
    this.pending=this.makeRequest(kind,p,this.nextTruco(),this.trucoValue);this.say(p,this.callName(this.nextTruco()));
@@ -101,13 +107,18 @@ class Match{
    else return this.error(this.hasFlor(p)?'Tienes flor: debes cantarla.':'No tienes flor en esta mano.');
    if(q.targets.every(who=>q.responses[who]))this.finishFlor();return true;
   }
-  if(!['yes','no','raise'].includes(choice))return false;
+  if(!['yes','no','raise','raiseFalta'].includes(choice))return false;
   if(this.needsFlor(p)&&choice!=='no')return this.error('Canta tu flor antes de responder.');
-  if(choice==='raise'){
-   const amount=q.kind==='truco'?({3:6,6:9,9:24})[q.amount]:q.amount+extra;
-   if(!amount||!Number.isInteger(extra)||extra<1||extra>24)return false;
+  if(choice==='raise'||choice==='raiseFalta'){
+   if(choice==='raiseFalta'&&(q.kind!=='envido'||q.isFalta))return this.error('No se puede volver a envidar la falta.');
+   if(q.kind==='envido'&&q.isFalta)return this.error('La falta es el envite máximo.');
+   if(choice==='raise'&&(!Number.isInteger(extra)||extra<1||extra>24))return false;
+   const isFalta=choice==='raiseFalta',amount=isFalta?this.falta():q.kind==='truco'?({3:6,6:9,9:24})[q.amount]:q.amount+extra;
+   if(!amount||amount>24)return this.error('La apuesta excede el límite de 24 tantos.');
    if(q.kind==='truco'){this.trucoValue=q.amount;this.lastTrucoTeam=team(q.from)}
-   this.pending=this.makeRequest(q.kind,p,amount,q.amount,{mode:q.mode});this.say(p,q.kind==='truco'?this.callName(amount):'Quiero y '+extra+' tantas más');return true;
+   const canto=isFalta?'Quiero y la falta':q.kind==='truco'?this.callName(amount):extra===2?'Quiero y Envido':'Quiero y '+extra+' tantos más';
+   this.pending=this.makeRequest(q.kind,p,amount,q.amount,{mode:q.mode,isFalta,canto});
+   this.say(p,canto);return true;
   }
   if(choice==='no'){
    q.responses[p]='no';this.say(p,'No quiero');if(!q.targets.every(who=>q.responses[who]==='no'))return true;
@@ -115,7 +126,7 @@ class Match{
   }
   q.responses[p]='yes';this.say(p,q.kind==='envido'&&q.mode==='open'?'Sin ley, quiero':'Quiero');this.pending=null;
   if(q.kind==='truco'){this.trucoValue=q.amount;this.lastTrucoTeam=team(q.from);this.receipt(this.name(p)+' aceptó '+this.callName(q.amount)+' por su equipo. Se juega a '+q.amount+' tantos.')}
-  else{let winner=this.mano,best=-1;for(const who of this.order()){const n=envido(this.original[who],this.vira);if(n>best){best=n;winner=who}}this.award(team(winner),q.amount,'envite querido: '+this.name(winner)+' tiene '+best,winner)}
+  else{let winner=this.mano,best=-1;for(const who of this.order()){const n=envido(this.original[who],this.vira);if(n>best){best=n;winner=who}}this.award(team(winner),q.amount,'envite querido'+(q.isFalta?' (la falta)':'')+': '+this.name(winner)+' tiene '+best,winner)}
   return true;
  }
  play(p,slot){
@@ -175,10 +186,10 @@ class Match{
    if(q.kind==='flor')return this.respond(who,this.hasFlor(who)?'flor':'no');
    if(this.needsFlor(who))return this.callFlor(who,q.kind==='truco'?{kind:'respond',p:who,choice:'yes'}:null);
    const strength=q.kind==='envido'?envido(this.original[who],this.vira):Math.max(...this.hands[who].filter(Boolean).map(c=>power(c,this.vira)));
-   return this.respond(who,strength>=(q.kind==='envido'?25:89)?'yes':'no');
+   return this.respond(who,strength>=(q.kind==='envido'?(q.isFalta?31:25):89)?'yes':'no');
   }
   const who=this.turn;if(who===0)return false;if(this.needsFlor(who))return this.callFlor(who);
-  if(this.canEnvido(who)&&envido(this.original[who],this.vira)>=29&&this.rng()<.3)return this.call(who,'envido');
+  if(this.canEnvido(who)&&envido(this.original[who],this.vira)>=29&&this.rng()<.3)return this.call(who,'envido',this.rng()<.13?'falta':2);
   if(this.canTruco(who)&&Math.max(...this.hands[who].filter(Boolean).map(c=>power(c,this.vira)))>=98&&this.rng()<.15)return this.call(who,'truco');
   const available=this.hands[who].map((c,i)=>({c,i})).filter(x=>x.c).sort((a,b)=>power(a.c,this.vira)-power(b.c,this.vira));
   if(this.canPlayCovered(who)&&this.rng()<.20){
