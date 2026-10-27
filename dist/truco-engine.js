@@ -91,14 +91,40 @@ class Match{
   }
  }
  checkMatch(){const t=this.scores.findIndex(s=>s>=24);if(t<0)return false;this.matchWinner=t;this.phase='match-over';this.pending=null;this.handResult=(t===0?'Tu equipo':'Rivales')+' gana la partida.';return true}
+ florWinner(){
+  let winner=null,best=-1;
+  for(const p of this.order()){
+   if(!this.florDeclared[p])continue;
+   const n=flor(this.original[p],this.vira);
+   if(n>best){winner=p;best=n}
+  }
+  return winner;
+ }
+ closeFlor(winner,extra=0,reason='envite entre flores'){
+  const details=this.florContext||{},winners=this.order().filter(p=>this.florDeclared[p]&&team(p)===team(winner));
+  this.pending=null;this.florResolved=true;
+  this.award(team(winner),3*winners.length,'flor ganadora: '+this.name(winner),winner);
+  if(extra>0)this.award(team(winner),extra,reason,winner);
+  if(details.resume)this.pending=details.resume;
+  if(details.follow?.kind==='truco')this.call(details.follow.p,'truco');
+  if(details.follow?.kind==='respond'&&this.pending)this.respond(details.follow.p,details.follow.choice,details.follow.extra);
+  this.florContext=null;return true;
+ }
  finishFlor(){
   const q=this.pending;if(!q||q.kind!=='flor')return false;
-  const holders=this.order().filter(p=>this.florDeclared[p]),teams=new Set(holders.map(team));let winner=holders[0],points=3;
-  if(teams.size===1)points=holders.length*3;else for(const p of holders)if(flor(this.original[p],this.vira)>flor(this.original[winner],this.vira))winner=p;
-  this.pending=null;this.florResolved=true;this.award(team(winner),points,teams.size===1?'flor cantada':'comparación de flores',winner);
-  if(q.resume)this.pending=q.resume;
-  if(q.follow?.kind==='truco')this.call(q.follow.p,'truco');
-  if(q.follow?.kind==='respond'&&this.pending)this.respond(q.follow.p,q.follow.choice,q.follow.extra);
+  const holders=this.order().filter(p=>this.florDeclared[p]),teams=new Set(holders.map(team));
+  if(!holders.length){this.pending=null;this.florResolved=true;return true}
+  if(teams.size===1){
+   this.pending=null;this.florResolved=true;
+   this.award(team(holders[0]),3*holders.length,'flor cantada',holders[0]);
+   if(q.resume)this.pending=q.resume;
+   if(q.follow?.kind==='truco')this.call(q.follow.p,'truco');
+   if(q.follow?.kind==='respond'&&this.pending)this.respond(q.follow.p,q.follow.choice,q.follow.extra);
+   return true;
+  }
+  this.florContext={resume:q.resume,follow:q.follow};
+  const first=holders[0];this.pending={id:++this.callId,kind:'flor-choice',from:first,targets:[first],responses:{},amount:0,decline:0};
+  this.emit('flor-envite','Flores contrarias: '+this.name(first)+' decide si su Flor envida o se achica.',first);
   return true;
  }
  respond(p,choice,extra=2){
@@ -109,25 +135,43 @@ class Match{
    else return this.error(this.hasFlor(p)?'Tienes flor: debes cantarla.':'No tienes flor en esta mano.');
    if(q.targets.every(who=>q.responses[who]))this.finishFlor();return true;
   }
-  if(!['yes','no','raise','raiseFalta'].includes(choice))return false;
+  if(q.kind==='flor-choice'||q.kind==='flor-achico'){
+    if(!['florEnvido','achico'].includes(choice))return false;
+    this.say(p,choice==='achico'?'Mi flor es chica':'Mi flor envida');
+    if(choice==='achico'&&q.kind==='flor-choice'){
+     const other=this.order().find(w=>this.florDeclared[w]&&team(w)!==team(p));
+     this.pending={id:++this.callId,kind:'flor-achico',from:p,targets:[other],responses:{},amount:0,decline:0};return true;
+    }
+    if(choice==='achico')return this.closeFlor(this.florWinner(),0,'flores achicadas');
+    const other=this.order().find(w=>this.florDeclared[w]&&team(w)!==team(p));
+    this.pending={id:++this.callId,kind:'flor-envite',from:p,targets:[other],responses:{},amount:2,decline:1,isFalta:false,canto:'Mi flor envida'};
+    return true;
+   }
+   if(!['yes','no','raise','raiseFalta'].includes(choice))return false;
   if(this.needsFlor(p)&&choice!=='no')return this.error('Canta tu flor antes de responder.');
   if(choice==='raise'||choice==='raiseFalta'){
-   if(choice==='raiseFalta'&&(q.kind!=='envido'||q.isFalta))return this.error('No se puede volver a envidar la falta.');
-   if(q.kind==='envido'&&q.isFalta)return this.error('La falta es el envite máximo.');
+   if(choice==='raiseFalta'&&(!['envido','flor-envite'].includes(q.kind)||q.isFalta))return this.error('No se puede volver a envidar la falta.');
+   if(['envido','flor-envite'].includes(q.kind)&&q.isFalta)return this.error('La falta es el envite máximo.');
    if(choice==='raise'&&(!Number.isInteger(extra)||extra<1||extra>24))return false;
    const isFalta=choice==='raiseFalta',amount=isFalta?this.falta():q.kind==='truco'?({3:6,6:9,9:24})[q.amount]:q.amount+extra;
    if(!amount||amount>24)return this.error('La apuesta excede el límite de 24 tantos.');
    if(q.kind==='truco'){this.trucoValue=q.amount;this.lastTrucoTeam=team(q.from)}
    const canto=isFalta?'Quiero y la falta':q.kind==='truco'?this.callName(amount):extra===2?'Quiero y Envido':'Quiero y '+extra+' tantos más';
-   this.pending=this.makeRequest(q.kind,p,amount,q.amount,{mode:q.mode,isFalta,canto});
+   this.pending=q.kind==='flor-envite'?{id:++this.callId,kind:q.kind,from:p,targets:[this.order().find(w=>this.florDeclared[w]&&team(w)!==team(p))],responses:{},amount,decline:q.amount,isFalta,canto}:
+    this.makeRequest(q.kind,p,amount,q.amount,{mode:q.mode,isFalta,canto});
    this.say(p,canto);return true;
   }
   if(choice==='no'){
    q.responses[p]='no';this.say(p,'No quiero');if(!q.targets.every(who=>q.responses[who]==='no'))return true;
-   this.pending=null;if(q.kind==='truco')this.endHand(team(q.from),q.decline,'Truco no querido por el equipo contrario');else this.award(team(q.from),q.decline,'envite no querido por el equipo contrario',q.from);return true;
+   this.pending=null;
+    if(q.kind==='truco')this.endHand(team(q.from),q.decline,'Truco no querido por el equipo contrario');
+    else if(q.kind==='flor-envite')this.closeFlor(q.from,q.decline,'envite de flores no querido');
+    else this.award(team(q.from),q.decline,'envite no querido por el equipo contrario',q.from);
+    return true;
   }
   q.responses[p]='yes';this.say(p,q.kind==='envido'&&q.mode==='open'?'Sin ley, quiero':'Quiero');this.pending=null;
   if(q.kind==='truco'){this.trucoValue=q.amount;this.lastTrucoTeam=team(q.from);this.receipt(this.name(p)+' aceptó '+this.callName(q.amount)+' por su equipo. Se juega a '+q.amount+' tantos.')}
+   else if(q.kind==='flor-envite')this.closeFlor(this.florWinner(),q.amount,'envite de flores querido');
   else{let winner=this.mano,best=-1;for(const who of this.order()){const n=this.hasReserved(who)?101:envido(this.original[who],this.vira);if(n>best){best=n;winner=who}}this.award(team(winner),q.amount,'envite querido'+(q.isFalta?' (la falta)':'')+': '+this.name(winner)+' tiene '+best,winner)}
   return true;
  }
@@ -198,6 +242,9 @@ class Match{
   if(this.pending){
    const q=this.pending,who=p??q.targets.find(w=>w!==0&&!q.responses[w]);if(who===undefined||who===0||!this.canRespond(who))return false;
    if(q.kind==='flor')return this.respond(who,this.hasReserved(who)&&this.rng()<.55?'reserve':this.hasFlor(who)?'flor':'no');
+    if(q.kind==='flor-choice')return this.respond(who,flor(this.original[who],this.vira)>=34?'florEnvido':'achico');
+    if(q.kind==='flor-achico')return this.respond(who,flor(this.original[who],this.vira)>=30?'florEnvido':'achico');
+    if(q.kind==='flor-envite')return this.respond(who,flor(this.original[who],this.vira)>=32?'yes':'no');
    if(this.needsFlor(who))return this.callFlor(who,q.kind==='truco'?{kind:'respond',p:who,choice:'yes'}:null);
    const strength=q.kind==='envido'?envido(this.original[who],this.vira):Math.max(...this.hands[who].filter(Boolean).map(c=>power(c,this.vira)));
    return this.respond(who,strength>=(q.kind==='envido'?(q.isFalta?31:25):89)?'yes':'no');
