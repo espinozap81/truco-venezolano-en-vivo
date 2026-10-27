@@ -178,7 +178,7 @@ function practice(kind){
    for(const p of [1,2,3])g.play(p,1);
   }else{g.hands=hands.map(h=>h.slice());g.original=hands.map(h=>h.slice());g.vira=c(4,'Espadas');}
  if(kind==='envite'){g.mano=1;g.turn=1;g.leader=1;g.call(1,'envido')}
- session.match=g;session.modal=null;session.noticeSeen=0;session.error='';mount();draw();
+ session.match=g;session.lastSoundEvent=0;session.modal=null;session.noticeSeen=0;session.error='';mount();draw();
 }
 function onClick(e){
  const target=e.target.closest('button');if(!target||target.disabled)return;const id=target.id,g=session.match;
@@ -199,7 +199,7 @@ function onClick(e){
    const hidden=Number(id.slice('mesaCoverSlot'.length)),top=g.hands[0].findIndex((c,i)=>c&&i!==hidden);
    session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.playCovered(0,hidden,top));return;
   }
- if(id==='mesaNext'){stopTimer();if(g.phase==='match-over'){session.match=new TrucoEngine.Match({count:g.count});session.handKey=''}else g.nextHand();draw();return}
+ if(id==='mesaNext'){stopTimer();if(g.phase==='match-over'){session.match=new TrucoEngine.Match({count:g.count});session.handKey='';session.lastSoundEvent=0}else g.nextHand();draw();return}
  if(id==='mesaCloseModal'){session.lawNext=null;closeModal();return}
  if(id==='mesaEnvido'){if(g.needsFlor(0)&&!['aley','mixed'].includes(g.law[0]))lawDialog('envido');else run(()=>g.call(0,'envido'));return}
   if(id==='mesaEnvidoOptions'){
