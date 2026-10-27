@@ -10,7 +10,7 @@ Los botones del lobby abren prácticas; no modifica pagos ni acredita monedas.
 python -m http.server 8765 --directory dist
 ```
 
-Abrir `http://localhost:8765/?mesa=1`. El botón Ensayar permite probar Tengo flor,
+Abrir `http://localhost:8765/?mesa=1` (o `PROBAR.html` tras descomprimir el ZIP). El botón Ensayar permite probar Tengo flor,
 Me envidan, Envidar a rivales bajos y Matar tapado. Cada ensayo reinicia su marcador.
 
 - Orden: tú → rival derecho → compañero enfrente → rival izquierdo. El mano
@@ -97,3 +97,36 @@ Rama de revisión: `demo/mesa-azul-cruz`. Revisar antes de fusionar o publicar.
 - `node tests/engine.test.cjs` valida el motor y 100 partidas simuladas.
 - `node tests/ui.test.cjs` comprueba el DOM con `jsdom` instalado; debe correrse
   en un entorno que cuente con esa dependencia. Falta revisión visual en móvil.
+
+## Mesa compacta y envites ampliados: revisión actual
+
+- Mesa rectangular más compacta: anchura máxima de 990 px, cartas reducidas
+  moderadamente y jugadas escalonadas para minimizar choques.
+- Dorso ornamental: selector Azul / Rojo. SVG inspirado en la foto enviada.
+  La fotografía no se copia ni se incrusta como textura.
+- Mazo grande, manos animadas durante el barajado de cada nueva mano.
+- Audio generado por Web Audio: carta, envido, truco, flor, barajar y
+  fin de mano. Se puede silenciar. El navegador puede requerir clic
+  antes de permitir sonido.
+- Envido X tantos: elegir 1 a 24 tantos o Envido la falta.
+- Respuestas: Quiero, No quiero, Quiero y tantos más, Quiero y la falta.
+- La falta es lo que le falta al equipo delantero para llegar a 24 y
+  sustituye los puntos apostados previamente, sin sumarlos.
+- Rechazar un envite inicial concede 1 tanto; rechazar una subida
+  concede la apuesta anteriormente aceptada.
+- El marcador se actualiza solo al finalizar la mano, y cobra el
+  Envite/Flor antes del Truco. Si el Envite acaba la partida,
+  ya no se anotan los tantos del Truco.
+
+### Validación y límites
+
+- Motor: 100 partidas simuladas, envido fijo, subida, falta, rechazo,
+  prioridad de puntos, matar tapado y embuste validados.
+- Se comprobó la sintaxis JavaScript, pero faltan pruebas visuales
+  completas en navegador y pruebas de interfaz con jsdom.
+- Esta demo NO incluye aún todas las reglas y estrategias de Solé:
+  algunas reglas de ley, contrapuestas de flor y estrategias siguen
+  pendientes. Conserva la variante anterior solicitada de dos
+  respuestas No quiero para rechazar en equipo, aunque la primera
+  respuesta válida en Solé sigue pendiente de conciliación.
+- No incorpora jugadores en línea ni integra cuentas reales.
