@@ -42,15 +42,26 @@ function syncCards(){
   }
   $('#mesaHand').innerHTML=g.hands[0].map((c,i)=>`<div class="mesa-hand-slot" data-slot="${i}"><button class="mesa-hand-card" data-mesa-card="${i}" style="--tilt:${(i-1)*5}deg" aria-label="Jugar ${c.n} de ${safe(c.s)}">${card(c)}<span class="slot-number">${i+1}</span></button></div>`).join('');
   $('#mesaVira > div').innerHTML=card(g.vira);
+   const deck=$('.mesa-deck');deck.classList.remove('reshuffling');void deck.offsetWidth;deck.classList.add('reshuffling');
  }
  for(let p=0;p<g.count;p++){
   const pile=$('#mesaPile'+p),cs=g.played[p];
   while(pile._count<cs.length){
    const i=pile._count,c=cs[i];pile.querySelector('.mesa-empty')?.remove();
-   const el=document.createElement('div');el.className='mesa-played';el.style.setProperty('--i',i);el.dataset.playedKey=g.handNo+'-'+p+'-'+i;el.title=`Baza ${i+1}: ${c.n} de ${c.s}`;
-   el.innerHTML=card(c)+`<span class="baza-tag">${i+1}</span>`;pile.append(el);pile._count++;
+   const covered=g.coveredPlay?.p===p&&i>=1;
+    const hidden=covered&&i===1&&!g.coveredPlay.revealed;
+    const el=document.createElement('div');el.className='mesa-played'+(hidden?' covered':'');el.style.setProperty('--i',covered&&i===2&&!g.coveredPlay.revealed?1:i);
+    el.dataset.playedKey=g.handNo+'-'+p+'-'+i;
+    el.title=hidden?'Segunda carta tapada: se revelará al terminar la mano':`Carta ${i+1}: ${c.n} de ${c.s}`;
+    el.innerHTML=(hidden?'<div class="mesa-covered-back"></div>':card(c))+`<span class="baza-tag">${hidden?'?':i+1}</span>`;pile.append(el);pile._count++;
   }
-  if(p){const backs=$('#mesaBacks'+p),n=g.hands[p].filter(Boolean).length;while(backs.children.length>n)backs.lastElementChild.remove();backs.setAttribute('aria-label',n+' cartas ocultas')}
+  if(g.coveredPlay?.p===p&&g.coveredPlay.revealed){
+    const hidden=pile.querySelector('[data-played-key="'+g.handNo+'-'+p+'-1"]');
+    const top=pile.querySelector('[data-played-key="'+g.handNo+'-'+p+'-2"]');
+    if(hidden&&hidden.classList.contains('covered')){hidden.classList.remove('covered');hidden.innerHTML=card(cs[1])+'<span class="baza-tag">2</span>';hidden.title='Carta 2 revelada: '+cs[1].n+' de '+cs[1].s;}
+    if(top)top.style.setProperty('--i',2);
+   }
+   if(p){const backs=$('#mesaBacks'+p),n=g.hands[p].filter(Boolean).length;while(backs.children.length>n)backs.lastElementChild.remove();backs.setAttribute('aria-label',n+' cartas ocultas')}
  }
  g.hands[0].forEach((c,i)=>{
   const slot=$(`#mesaHand [data-slot="${i}"]`),b=slot.querySelector('button');
@@ -69,18 +80,20 @@ function draw(){
  }
  for(let t=0;t<2;t++){
   const score=$('#mesaScore'+t);text(score.querySelector('strong'),g.scores[t]);text(score.querySelector('small'),(g.scores[t]>=12?'DENTRO':'FUERA')+' · META 24');
-  const last=g.awards.filter(a=>a.team===t).at(-1);text(score.querySelector('em'),last?'+'+last.points+' '+last.reason:'Entrada a 12');
+  const finished=['hand-over','match-over'].includes(g.phase),last=finished?g.awards.filter(a=>a.team===t).at(-1):null;
+   text(score.querySelector('em'),last?'+'+last.points+' '+last.reason:g.awards.some(a=>a.team===t)?'Tantos pendientes hasta cerrar la mano':'Entrada a 12');
  }
  const round=g.phase==='hand-over'||g.phase==='match-over'?'Mano terminada':`Baza ${Math.min(g.results.length+1,3)} / 3`;
- html($('#mesaRound'),`<b>Mano ${g.handNo} · ${round}</b><span>Truco: ${g.trucoValue} tanto${g.trucoValue===1?'':'s'}</span><small>${g.results.map((t,i)=>`${i+1}: ${t===null?'Parda':t===0?'Nosotros':'Rivales'}`).join(' · ')||'Turno hacia la derecha'}</small>`);
+ html($('#mesaRound'),`<b>Mano ${g.handNo} · ${round}</b><span>Truco: ${g.trucoValue} tanto${g.trucoValue===1?'':'s'}</span><small>${g.results.map((t,i)=>`${i+1}: ${i===1&&g.coveredPlay&&!g.coveredPlay.revealed?'Tapada':t===null?'Parda':t===0?'Nosotros':'Rivales'}`).join(' · ')||'Turno hacia la derecha'}</small>`);
  const disabled=waitingNotice()||!!session.modal;
  const florButton=g.hasFlor(0)&&!g.florDeclared[0];
- html($('#mesaControls'),`${button('Envido','mesaEnvido','',!g.canEnvido(0)||disabled)}${button(florButton?'Flor y '+g.callName(g.nextTruco()):g.callName(g.nextTruco()),'mesaTruco','',!g.canTruco(0)||disabled)}${button('Flor','mesaFlor',florButton?'gold':'',!florButton||!g.canDeclare(0)||disabled)}${button('A ley / Sin ley','mesaLaw','',!g.canDeclare(0)||!!g.played[0].length||g.florDeclared[0]||disabled)}${button('Ir al mazo','mesaFold','',!g.atTurn(0)||disabled)}${button('Reglas','mesaHelp')}`);
+ html($('#mesaControls'),`${button('Envido','mesaEnvido','',!g.canEnvido(0)||disabled)}${button(florButton?'Flor y '+g.callName(g.nextTruco()):g.callName(g.nextTruco()),'mesaTruco','',!g.canTruco(0)||disabled)}${button('Flor','mesaFlor',florButton?'gold':'',!florButton||!g.canDeclare(0)||disabled)}${button('Matar tapado','mesaCover','',!g.canPlayCovered(0)||disabled)}${button('A ley / Sin ley','mesaLaw','',!g.canDeclare(0)||!!g.played[0].length||g.florDeclared[0]||disabled)}${button('Ir al mazo','mesaFold','',!g.atTurn(0)||disabled)}${button('Reglas','mesaHelp')}`);
  const flowerHint=g.needsFlor(0)?g.played[0].length?'Tienes flor reservada: cántala antes de la segunda carta.':g.law[0]?'Flor reservada con A ley.':'Tienes flor: cántala o reserva con A ley.':'';
  let status=session.error||flowerHint||(!g.pending&&g.atTurn(0)?'Tu turno: canta o elige una carta.':!g.pending&&g.phase==='playing'?g.name(g.turn)+' está pensando…':'');
  if(g.pending)status=g.pending.kind==='flor'?'Flor en la mesa · cada jugador debe declararla o responder Sin flor.':'Canto pendiente · las cartas esperan la respuesta del equipo.';
- if(waitingNotice())status='Tantos y cantos actualizados · pulsa Continuar para seguir.';
+ if(waitingNotice())status='Canto resuelto · los tantos se anotarán al terminar la mano. Pulsa Continuar.';
  if(['hand-over','match-over'].includes(g.phase))status=g.handResult;
+  if(g.coveredPlay&&!g.coveredPlay.revealed)status='Matar tapado: la segunda carta está oculta hasta finalizar la mano.';
  text($('#mesaStatus'),status);text($('#mesaHint'),g.canPlay(0)&&!disabled?'Pulsa una de tus cartas':g.phase==='playing'?'Las cartas esperan el turno y la resolución de los cantos':'Las cartas quedan fijas hasta el siguiente reparto');
  html($('#mesaMeta'),'<b>Turno: tú → derecha → enfrente → izquierda.</b><br>Un Quiero acepta por el equipo.<br>Se necesitan dos No quiero para rechazar.');
  renderCall();
@@ -91,7 +104,7 @@ function draw(){
 function requestTitle(q){const g=session.match;return q.kind==='flor'?'¡Flor!':q.kind==='envido'?'¡Envido!':g.callName(q.amount)}
 function renderCall(){
  const g=session.match,panel=$('#mesaCallPanel');let body='';
- if(waitingNotice())body=`<div class="call-eyebrow">CANTO RESUELTO</div><h3>Tantos y respuesta</h3><p role="status">${safe(g.notice.text)}</p>${button('Continuar','mesaNoticeContinue','gold')}`;
+ if(waitingNotice())body=`<div class="call-eyebrow">CANTO RESUELTO</div><h3>Tantos pendientes</h3><p role="status">${safe(g.notice.text)}</p>${button('Continuar','mesaNoticeContinue','gold')}`;
  else if(['hand-over','match-over'].includes(g.phase))body=`<div class="call-eyebrow">${g.phase==='match-over'?'FIN DE PARTIDA':'FIN DE MANO'}</div><h3>${g.phase==='match-over'?(g.matchWinner===0?'¡Ganó tu equipo!':'Ganaron los rivales'):'Mano terminada'}</h3><p>${safe(g.handResult)}</p><b>${g.scores[0]} — ${g.scores[1]}</b><p>${g.awards.map(a=>(a.team===0?'Nosotros':'Rivales')+' +'+a.points+' ('+safe(a.reason)+')').join('<br>')}</p>${button(g.phase==='match-over'?'Nueva partida':'Siguiente mano','mesaNext','gold')}`;
  else if(g.pending){
   const q=g.pending,responding=g.canRespond(0);
@@ -130,7 +143,14 @@ function lawDialog(next=null){
 function practice(kind){
  const g=new TrucoEngine.Match({count:4}),c=(n,s)=>({n,s});
  const hands=kind==='flor'?[[c(7,'Oros'),c(6,'Oros'),c(5,'Oros')],[c(4,'Copas'),c(5,'Bastos'),c(6,'Espadas')],[c(1,'Copas'),c(2,'Bastos'),c(3,'Espadas')],[c(4,'Bastos'),c(5,'Espadas'),c(6,'Copas')]]:[[c(7,'Oros'),c(6,'Oros'),c(5,'Bastos')],[c(4,'Oros'),c(5,'Copas'),c(6,'Espadas')],[c(1,'Copas'),c(2,'Bastos'),c(3,'Espadas')],[c(4,'Bastos'),c(5,'Espadas'),c(6,'Copas')]];
- g.hands=hands.map(h=>h.slice());g.original=hands.map(h=>h.slice());g.vira=c(4,'Espadas');
+ if(kind==='covered'){
+   const coverHands=[[c(4,'Oros'),c(6,'Oros'),c(7,'Bastos')],[c(1,'Espadas'),c(4,'Copas'),c(5,'Espadas')],[c(2,'Bastos'),c(5,'Bastos'),c(6,'Copas')],[c(3,'Copas'),c(6,'Espadas'),c(7,'Oros')]];
+   g.hands=coverHands.map(h=>h.slice());g.original=coverHands.map(h=>h.slice());g.vira=c(4,'Copas');
+   g.mano=1;g.turn=1;g.leader=1;
+   for(const p of [1,2,3,0])g.play(p,0);
+   g.resolveBaza();
+   for(const p of [1,2,3])g.play(p,1);
+  }else{g.hands=hands.map(h=>h.slice());g.original=hands.map(h=>h.slice());g.vira=c(4,'Espadas');}
  if(kind==='envite'){g.mano=1;g.turn=1;g.leader=1;g.call(1,'envido')}
  session.match=g;session.modal=null;session.noticeSeen=0;session.error='';mount();draw();
 }
@@ -141,6 +161,17 @@ function onClick(e){
  if(id==='mesaLog'){session.showLog=!session.showLog;draw();return}
  if(id==='mesaFullscreen'){(async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('#mesaDemo').requestFullscreen()}catch{dialog('Pantalla completa','<p>La mesa ocupa la ventana. Este navegador no permite ocultar sus barras.</p>',button('Continuar','mesaCloseModal','gold'))}})();return}
  if(id==='mesaNoticeContinue'){session.noticeSeen=g.notice?.id||0;draw();return}
+  if(id==='mesaCover'){
+   if(!g.canPlayCovered(0))return;
+   const left=g.hands[0].map((c,i)=>({c,i})).filter(x=>x.c);
+   dialog('Matar tapado','<p>Jugarás tu segunda y tercera carta a la vez. Elige qué carta dejar oculta debajo. La carta superior quedará a la vista. Puede ser un embuste: al terminar la mano se comprueba si realmente mató.</p>',
+    left.map(x=>button('Tapar '+x.c.n+' de '+safe(x.c.s),'mesaCoverSlot'+x.i,'gold')).join('')+button('Cancelar','mesaCloseModal'));
+   return;
+  }
+  if(id.startsWith('mesaCoverSlot')){
+   const hidden=Number(id.slice('mesaCoverSlot'.length)),top=g.hands[0].findIndex((c,i)=>c&&i!==hidden);
+   session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.playCovered(0,hidden,top));return;
+  }
  if(id==='mesaNext'){stopTimer();if(g.phase==='match-over'){session.match=new TrucoEngine.Match({count:g.count});session.handKey=''}else g.nextHand();draw();return}
  if(id==='mesaCloseModal'){session.lawNext=null;closeModal();return}
  if(id==='mesaEnvido'){if(g.needsFlor(0)&&!['aley','mixed'].includes(g.law[0]))lawDialog('envido');else run(()=>g.call(0,'envido'));return}
@@ -155,9 +186,9 @@ function onClick(e){
  if(id==='mesaYes'||id==='mesaNo'||id==='mesaRaise'){const extra=Number($('#mesaRaiseAmount')?.value||2);run(()=>g.respond(0,id==='mesaYes'?'yes':id==='mesaNo'?'no':'raise',extra));return}
  if(id==='mesaFold'){dialog('¿Ir al mazo?',`<p>Los rivales sumarán ${g.trucoValue} tantos por el truco.</p>`,button('Seguir jugando','mesaCloseModal','gold')+button('Ir al mazo','mesaConfirmFold'));return}
  if(id==='mesaConfirmFold'){session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.endHand(1,g.trucoValue,'Tu equipo fue al mazo'));return}
- if(id==='mesaPractice'){dialog('Ensayar una jugada','<p>Empieza una partida de práctica con una situación concreta. Se reinicia el marcador de esta prueba.</p>',button('Tengo flor','mesaPracticeFlor','gold')+button('Me envidan','mesaPracticeEnvite')+button('Envidar a rivales bajos','mesaPracticeNo')+button('Volver','mesaCloseModal'));return}
- if(id.startsWith('mesaPractice')){practice(id==='mesaPracticeFlor'?'flor':id==='mesaPracticeEnvite'?'envite':'no');return}
- if(id==='mesaHelp'){dialog('Cantos y turnos','<p>El orden es tú → rival derecho → compañero → rival izquierdo. El mano rota en cada reparto. Quien gana la baza abre la siguiente.</p><p>Envido y Truco están disponibles desde el primer turno. A ley permite reservar la flor hasta antes de la segunda carta; el pie debe cantarla en la primera. Canta tu flor antes de Truco o de aceptarlo.</p><p>El envite llega a ambos contrarios: cualquiera puede aceptar; para rechazar deben decir No quiero los dos. Se suma al momento y queda el recibo en la mesa hasta pulsar Continuar.</p><p>La flor se declara con el botón Flor y se paga tras las respuestas. Si hay flores rivales se comparan por tres tantos, sin contra flor. Una flor interrumpe y anula un envite pendiente sin ley.</p><p class="mesa-help-note">Práctica con bots. Entrada a 12 indica Fuera/Dentro; meta 24. No incluye falta envido ni subidas de flor. Los cantos A ley de esta prueba reservan la flor; no implementan toda la negociación de envites con ley del reglamento completo.</p>',button('Volver','mesaCloseModal','gold'))}
+ if(id==='mesaPractice'){dialog('Ensayar una jugada','<p>Empieza una partida de práctica con una situación concreta. Se reinicia el marcador de esta prueba.</p>',button('Tengo flor','mesaPracticeFlor','gold')+button('Me envidan','mesaPracticeEnvite')+button('Envidar a rivales bajos','mesaPracticeNo')+button('Matar tapado','mesaPracticeCovered')+button('Volver','mesaCloseModal'));return}
+ if(id.startsWith('mesaPractice')){practice(id==='mesaPracticeFlor'?'flor':id==='mesaPracticeEnvite'?'envite':id==='mesaPracticeCovered'?'covered':'no');return}
+ if(id==='mesaHelp'){dialog('Cantos y turnos','<p>El orden es tú → rival derecho → compañero → rival izquierdo. El mano rota en cada reparto. Quien gana la baza abre la siguiente.</p><p>Envido y Truco están disponibles desde el primer turno. A ley permite reservar la flor hasta antes de la segunda carta; el pie debe cantarla en la primera. Canta tu flor antes de Truco o de aceptarlo.</p><p>El envite llega a ambos contrarios: cualquiera puede aceptar; para rechazar deben decir No quiero los dos. Los tantos se anotan solo al terminar la mano; la respuesta queda en la mesa hasta pulsar Continuar.</p><p>La flor se declara con el botón Flor; los tantos se pagan al terminar la mano. Si hay flores rivales se comparan por tres tantos, sin contra flor. Una flor interrumpe y anula un envite pendiente sin ley.</p><p class="mesa-help-note">Práctica con bots. Después de la primera baza, el último jugador de la segunda puede tirar juntas las dos cartas restantes con Matar tapado: la segunda queda debajo de la tercera, y puede ser un embuste. Se comprueba al finalizar la mano. Se baraja de nuevo en cada reparto. Entrada a 12 indica Fuera/Dentro; meta 24. No incluye falta envido ni subidas de flor. Los cantos A ley de esta prueba reservan la flor; no implementan toda la negociación de envites con ley del reglamento completo.</p>',button('Volver','mesaCloseModal','gold'))}
 }
 window.MesaDemo={start,leave};
 })();
