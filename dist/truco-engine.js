@@ -4,8 +4,9 @@
 const SUITS=['Oros','Copas','Espadas','Bastos'];
 const DECK=SUITS.flatMap(s=>[1,2,3,4,5,6,7,10,11,12].map(n=>({n,s})));
 const team=p=>p%2;
+const reserved=(hand,v)=>hand.filter(c=>piece(c,v)>0).length===2;
 function piece(c,v){if(c.s!==v.s)return 0;if(c.n===(v.n===11?12:11))return 2;if(c.n===(v.n===10?12:10))return 1;return 0}
-function power(c,v){const p=piece(c,v);if(p)return 100+p;if(c.n===1&&c.s==='Espadas')return 99;if(c.n===1&&c.s==='Bastos')return 98;if(c.n===7&&c.s==='Espadas')return 97;if(c.n===7&&c.s==='Oros')return 96;return ({3:90,2:89,1:88,12:87,11:86,10:85,7:84,6:83,5:82,4:81})[c.n]}
+function power(c,v){if(c.passed)return -1;const p=piece(c,v);if(p)return 100+p;if(c.n===1&&c.s==='Espadas')return 99;if(c.n===1&&c.s==='Bastos')return 98;if(c.n===7&&c.s==='Espadas')return 97;if(c.n===7&&c.s==='Oros')return 96;return ({3:90,2:89,1:88,12:87,11:86,10:85,7:84,6:83,5:82,4:81})[c.n]}
 const index=c=>c.n>=10?0:c.n;
 function envido(hand,v){const p=hand.find(c=>piece(c,v));if(p)return (piece(p,v)===2?30:29)+Math.max(...hand.filter(c=>c!==p).map(index));let best=Math.max(...hand.map(index));for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)if(hand[i].s===hand[j].s)best=Math.max(best,20+index(hand[i])+index(hand[j]));return best}
 function flor(hand,v){const ps=hand.filter(c=>piece(c,v));if(ps.length===2)return 100;if(ps.length===1){const rest=hand.filter(c=>c!==ps[0]);if(rest[0].s===rest[1].s)return (piece(ps[0],v)===2?30:29)+rest.reduce((a,c)=>a+index(c),0)}if(hand.every(c=>c.s===hand[0].s))return 20+hand.reduce((a,c)=>a+index(c),0);return 0}
@@ -24,15 +25,16 @@ class Match{
   if(this.matchWinner!==null)return false;if(this.handNo)this.mano=(this.mano+1)%this.count;
   this.handNo++;const d=DECK.map(c=>({...c}));for(let i=d.length-1;i>0;i--){const j=Math.floor(this.rng()*(i+1));[d[i],d[j]]=[d[j],d[i]]}
   this.hands=Array.from({length:this.count},()=>[]);for(let i=0;i<3;i++)for(const p of this.order())this.hands[p].push(d.pop());
-  this.original=this.hands.map(h=>h.slice());this.vira=d.pop();this.played=Array.from({length:this.count},()=>[]);this.coveredPlay=null;
+  this.original=this.hands.map(h=>h.slice());this.vira=d.pop();this.played=Array.from({length:this.count},()=>[]);this.coveredPlay=null;this.passAll=Array(this.count).fill(false);
   this.baza=[];this.results=[];this.turn=this.mano;this.leader=this.mano;this.phase='playing';this.pending=null;this.trucoValue=1;this.lastTrucoTeam=null;
   this.envidoDone=false;this.florResolved=false;this.law=Array(this.count).fill(null);this.florDeclared=Array(this.count).fill(false);
   this.speech=Array(this.count).fill('');this.awards=[];this.handResult=null;this.lastError='';this.notice=null;
   this.emit('shuffle','Barajando las 40 cartas para la mano '+this.handNo+'.');this.emit('hand','Mano '+this.handNo+': abre '+this.name(this.mano)+'.');return true;
  }
  hasFlor(p){return flor(this.original[p],this.vira)>0}
+ hasReserved(p){return reserved(this.original[p],this.vira)}
  atTurn(p){return this.phase==='playing'&&!this.pending&&this.turn===p}
- needsFlor(p){return this.hasFlor(p)&&!this.florDeclared[p]}
+ needsFlor(p){return this.hasFlor(p)&&!this.hasReserved(p)&&!this.florDeclared[p]}
  canPlay(p){return this.atTurn(p)&&(!this.needsFlor(p)||(!this.played[p].length&&['aley','mixed'].includes(this.law[p])&&p!==this.pie()))}
  canPlayCovered(p){return this.count===4&&this.canPlay(p)&&this.results.length===1&&this.baza.length===this.count-1&&this.played[p].length===1&&this.hands[p].filter(Boolean).length===2&&!this.coveredPlay}
  canEnvido(p){return this.atTurn(p)&&!this.envidoDone&&!this.played[p].length&&!this.florResolved}
@@ -42,7 +44,7 @@ class Match{
  canDeclare(p){return this.atTurn(p)||this.canRespond(p)}
  declareLaw(p,mode){
   if(!this.canDeclare(p)||this.played[p].length||!['aley','mixed','sinley'].includes(mode)||this.florDeclared[p])return false;
-  if(mode==='sinley'&&this.hasFlor(p))return this.error('Tienes flor: canta Flor o resérvala con A ley.');
+  if(mode==='sinley'&&this.hasFlor(p)&&!this.hasReserved(p))return this.error('Tienes flor: canta Flor o resérvala con A ley.');
   if(mode!=='sinley'&&p===this.pie())return this.error('El pie debe cantar su flor en la primera carta.');
   this.law[p]=mode;this.say(p,({aley:'A ley',mixed:'A ley o sin ley',sinley:'Sin ley'})[mode]);return true;
  }
@@ -103,7 +105,7 @@ class Match{
   if(!this.canRespond(p))return false;const q=this.pending;
   if(q.kind==='flor'){
    if(choice==='flor'&&this.hasFlor(p)){this.florDeclared[p]=true;this.law[p]='flor';q.responses[p]='flor';this.say(p,'Flor')}
-   else if(choice==='no'&&!this.hasFlor(p)){q.responses[p]='no';this.law[p]='sinley';this.say(p,'Sin flor')}
+   else if(choice==='reserve'&&this.hasReserved(p)){q.responses[p]='reserve';this.say(p,'Reservo mi flor')} else if(choice==='no'&&!this.hasFlor(p)){q.responses[p]='no';this.law[p]='sinley';this.say(p,'Sin flor')}
    else return this.error(this.hasFlor(p)?'Tienes flor: debes cantarla.':'No tienes flor en esta mano.');
    if(q.targets.every(who=>q.responses[who]))this.finishFlor();return true;
   }
@@ -126,12 +128,17 @@ class Match{
   }
   q.responses[p]='yes';this.say(p,q.kind==='envido'&&q.mode==='open'?'Sin ley, quiero':'Quiero');this.pending=null;
   if(q.kind==='truco'){this.trucoValue=q.amount;this.lastTrucoTeam=team(q.from);this.receipt(this.name(p)+' aceptó '+this.callName(q.amount)+' por su equipo. Se juega a '+q.amount+' tantos.')}
-  else{let winner=this.mano,best=-1;for(const who of this.order()){const n=envido(this.original[who],this.vira);if(n>best){best=n;winner=who}}this.award(team(winner),q.amount,'envite querido'+(q.isFalta?' (la falta)':'')+': '+this.name(winner)+' tiene '+best,winner)}
+  else{let winner=this.mano,best=-1;for(const who of this.order()){const n=this.hasReserved(who)?101:envido(this.original[who],this.vira);if(n>best){best=n;winner=who}}this.award(team(winner),q.amount,'envite querido'+(q.isFalta?' (la falta)':'')+': '+this.name(winner)+' tiene '+best,winner)}
   return true;
  }
- play(p,slot){
+ commitPassAll(p){if(!this.canPlay(p))return false;this.passAll[p]=true;return true}
+ playPassed(p,slot){return this.play(p,slot,true)}
+ play(p,slot,pass=false){
   if(!this.canPlay(p)||!Number.isInteger(slot)||!this.hands[p][slot])return false;
-  const c=this.hands[p][slot];this.hands[p][slot]=null;this.played[p].push(c);this.baza.push({p,c});this.emit('card',this.name(p)+' juega '+c.n+' de '+c.s+'.',p);
+  const hidden=pass||this.passAll[p];if(hidden&&!this.played[p].length)this.passAll[p]=true;
+   const original=this.hands[p][slot],c=hidden?{...original,passed:true}:original;
+   this.hands[p][slot]=null;this.played[p].push(c);this.baza.push({p,c});
+   this.emit('card',this.name(p)+(hidden?' pasa una carta boca abajo.':' juega '+c.n+' de '+c.s+'.'),p);
   if(this.baza.length===this.count)this.phase='baza-over';
   else{
    this.turn=(p+1)%this.count;
@@ -173,6 +180,13 @@ class Match{
    this.coveredPlay.revealed=true;
    this.emit('reveal','Matar tapado: '+(this.coveredPlay.didKill?'sí mató al contrario.':'era un embuste o no alcanzó para matar.')+' Carta oculta: '+this.coveredPlay.hidden.n+' de '+this.coveredPlay.hidden.s+'.',this.coveredPlay.p);
   }
+  for(const p of this.order()){
+   if(!this.hasReserved(p)||this.florDeclared[p])continue;
+   const opposingFlor=this.order().some(w=>team(w)!==team(p)&&this.florDeclared[w]);
+   const ownFlor=this.order().some(w=>w!==p&&team(w)===team(p)&&this.florDeclared[w]);
+   if(!opposingFlor)this.award(team(p),3,'flor reservada exhibida al cerrar la mano',p);
+   if(!this.envidoDone&&!ownFlor)this.award(team(p),1,'envite mínimo de la flor reservada',p);
+  }
   this.award(winner,points,reason);this.settleHand();
   this.handResult=reason+': '+(winner===0?'tu equipo':'rivales')+' gana el Truco de esta mano. Tantos anotados al finalizar: '+this.awards.map(a=>(a.team===0?'nosotros ':'rivales ')+a.points+' ('+a.reason+')').join(', ')+'.';
   if(this.coveredPlay)this.handResult+=' Matar tapado: '+(this.coveredPlay.didKill?'era cierto.':'no mató: embuste.');
@@ -183,7 +197,7 @@ class Match{
   if(this.phase!=='playing')return false;
   if(this.pending){
    const q=this.pending,who=p??q.targets.find(w=>w!==0&&!q.responses[w]);if(who===undefined||who===0||!this.canRespond(who))return false;
-   if(q.kind==='flor')return this.respond(who,this.hasFlor(who)?'flor':'no');
+   if(q.kind==='flor')return this.respond(who,this.hasReserved(who)&&this.rng()<.55?'reserve':this.hasFlor(who)?'flor':'no');
    if(this.needsFlor(who))return this.callFlor(who,q.kind==='truco'?{kind:'respond',p:who,choice:'yes'}:null);
    const strength=q.kind==='envido'?envido(this.original[who],this.vira):Math.max(...this.hands[who].filter(Boolean).map(c=>power(c,this.vira)));
    return this.respond(who,strength>=(q.kind==='envido'?(q.isFalta?31:25):89)?'yes':'no');
@@ -198,7 +212,7 @@ class Match{
    return this.playCovered(who,hidden.i,top.i);
   }
   const best=this.baza.length?Math.max(...this.baza.map(x=>power(x.c,this.vira))):0,highest=this.baza.filter(x=>power(x.c,this.vira)===best),partnerWinning=highest.length&&highest.every(x=>team(x.p)===team(who));
-  const pick=partnerWinning?available[0]:available.find(x=>power(x.c,this.vira)>best)||available[0];return this.play(who,pick.i);
+  const pick=partnerWinning?available[0]:available.find(x=>power(x.c,this.vira)>best)||available[0];return this.play(who,pick.i,this.results.length>0&&partnerWinning&&this.rng()<.18);
  }
 }
 const api={Match,DECK,power,piece,envido,flor,handWinner,team};if(typeof module!=='undefined')module.exports=api;root.TrucoEngine=api;
