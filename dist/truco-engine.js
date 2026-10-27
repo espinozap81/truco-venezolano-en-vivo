@@ -207,8 +207,8 @@ class Match{
   if(this.results.length===2&&this.coveredPlay){
    const covered=this.coveredPlay,opponents=this.baza.filter(x=>team(x.p)!==team(covered.p));
    covered.didKill=opponents.length>0&&power(covered.hidden,this.vira)>Math.max(...opponents.map(x=>power(x.c,this.vira)));
-   this.emit('baza','Baza 2: matar tapado. Se verificará al terminar la mano.');
-  }else this.emit('baza','Baza '+this.results.length+': '+(tied?'parda.':this.name(top[0].p)+' gana.'));
+   this.emit('baza','Ronda 2: matar tapado. Se verificará al terminar la mano.');
+  }else this.emit('baza','Ronda '+this.results.length+': '+(tied?'parda.':this.name(top[0].p)+' gana.'));
   const result=handWinner(this.results,team(this.mano));if(result!==null){this.endHand(result,this.trucoValue,'Mano decidida');return true}
   this.baza=[];this.turn=this.leader;this.phase='playing';
   if(this.results.length===2&&this.coveredPlay){
