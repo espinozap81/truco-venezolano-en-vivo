@@ -75,13 +75,32 @@ assert.equal(g.scores[0],18);assert(g.endHand(0,1,'test'));assert.equal(g.scores
 g=setup();assert.equal(g.call(0,'envido',0),false);assert.equal(g.call(0,'envido',25),false);
 assert(g.call(0,'envido',24));assert.equal(g.pending.amount,24);
 
+
+// Reglas Solé: pasar segunda o tercera; pasar primera obliga las tres.
+g=setup();assert(g.playPassed(0,0));assert(g.played[0][0].passed);assert.equal(g.passAll[0],true);
+for(const p of [1,2,3])assert(g.play(p,0));assert(g.resolveBaza());if(g.turn===0)assert(g.play(0,1));else{while(g.turn!==0&&g.phase==='playing')assert(g.play(g.turn,1));if(g.phase==='playing')assert(g.play(0,1))}
+assert(g.played[0][1].passed,'pasar la primera obliga seguir pasando');
+// Reservada: puede envidar, jugar sin ley ni cantar flor.
+const reservedCards=noFlowers();reservedCards[0]=[c(11,'Copas'),c(10,'Copas'),c(4,'Oros')];
+g=setup(reservedCards);g.vira=c(6,'Copas');assert(g.hasReserved(0));assert(g.canPlay(0));assert(g.canEnvido(0));
+assert(g.call(0,'envido'));assert.equal(g.pending.kind,'envido');
+// Dos flores opuestas: abrir envite, no resolver flor por comparación automática.
+const doubleFlowers=noFlowers();doubleFlowers[0]=[c(4),c(5),c(6)];
+doubleFlowers[1]=[c(5,'Bastos'),c(6,'Bastos'),c(7,'Bastos')];
+g=setup(doubleFlowers);assert(g.callFlor(0));assert(g.respond(1,'flor'));assert(g.respond(2,'no'));assert(g.respond(3,'no'));
+assert.equal(g.pending.kind,'flor-choice');assert.deepEqual(g.scores,[0,0]);
+assert(g.respond(0,'florEnvido'));assert.equal(g.pending.kind,'flor-envite');
+assert(g.respond(1,'yes'));assert.equal(g.pending,null);
+assert.equal(g.awards.length,2);assert.deepEqual(g.scores,[0,0]);
+g.endHand(0,1,'test');assert(g.scores[1]>=5);
+
 // Random hands: 100 complete matches, all explicit human/bot responses and flowers.
 for(let run=0;run<100;run++){
  const m=new Match({count:run%2?2:4,rng});let steps=0;
  while(m.matchWinner===null&&steps++<20000){
   let ok;
   if(m.phase==='hand-over')ok=m.nextHand();else if(m.phase==='baza-over')ok=m.resolveBaza();
-  else if(m.pending){const p=m.pending.targets.find(w=>!m.pending.responses[w]);if(p===0){if(m.pending.kind==='flor')ok=m.respond(0,m.hasFlor(0)?'flor':'no');else if(m.needsFlor(0))ok=m.callFlor(0);else ok=m.respond(0,'yes')}else ok=m.botAction(p)}
+  else if(m.pending){const p=m.pending.targets.find(w=>!m.pending.responses[w]);if(p===0){if(m.pending.kind==='flor')ok=m.respond(0,m.hasFlor(0)?'flor':'no');else if(['flor-choice','flor-achico'].includes(m.pending.kind))ok=m.respond(0,'florEnvido');else if(m.pending.kind==='flor-envite')ok=m.respond(0,'yes');else if(m.needsFlor(0))ok=m.callFlor(0);else ok=m.respond(0,'yes')}else ok=m.botAction(p)}
   else if(m.turn===0)ok=m.needsFlor(0)?m.callFlor(0):m.play(0,m.hands[0].findIndex(Boolean));else ok=m.botAction();
   assert(ok,`stuck: run ${run}, step ${steps}, phase ${m.phase}`);
  }
