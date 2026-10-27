@@ -64,3 +64,60 @@
 .mesa-covered-back{width:100%;height:100%;border:3px solid #e8d5a9;background:repeating-linear-gradient(45deg,#1a3c5c 0 6px,#7897b2 6px 8px,#233e5a 8px 14px);border-radius:6px}
 @media(max-width:850px){.mesa-pile{--played-step:22px}}
 @media(max-width:520px){.mesa-pile{--played-step:17px}.mesa-controls{flex-wrap:wrap}}
+
+
+/* v4: mesa compacta, mazo grande, dorso inspirado en la foto y manos animadas. */
+.mesa-demo{--card-w:clamp(48px,5.1vw,80px)}
+.mesa-stage{width:calc(100% - 54px);max-width:990px;margin:12px auto 8px}
+.mesa-wood{border-radius:clamp(42px,7vw,92px);padding:17px}
+.mesa-pile{--played-step:clamp(27px,3vw,39px)}
+.mesa-pile.pos-0{bottom:19px;left:48%}
+.mesa-pile.pos-2{top:35px;left:48%}
+.mesa-pile.pos-1{left:7%}.mesa-pile.pos-3{right:7%}
+.mesa-hand-slot{width:clamp(75px,6.5vw,97px);height:clamp(113px,9.75vw,146px)}
+.mesa-hand-card,.mesa-hand-empty{width:100%;height:100%}
+.mesa-foreground{padding-bottom:12px}
+.mesa-deck{bottom:13px;left:9%;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mesa-deck .mesa-back{width:61px;height:90px;border-radius:6px;border:2px solid #eadfc4;box-shadow:2px 2px #e6dfc2,4px 4px #223549,7px 8px 13px #051b2c}
+.mesa-back,.mesa-covered-back{background:#f8f7f2 var(--back-design) center/cover no-repeat!important}
+.mesa-demo{--back-design:url("cards/back-blue.svg")}
+.mesa-demo[data-back="red"]{--back-design:url("cards/back-red.svg")}
+.mesa-deck.reshuffling .mesa-back{animation:mesa-shuffle .95s ease-in-out both}
+.mesa-shuffle-hands{position:absolute;left:50%;top:23px;width:160px;transform:translateX(-50%);pointer-events:none;display:none;font-size:49px}
+.mesa-shuffle-hands .shuffle-hand{position:absolute;top:0;filter:drop-shadow(0 3px 3px #102637)}
+.shuffle-left{left:-4px}.shuffle-right{right:-4px}
+.mesa-deck.reshuffling .mesa-shuffle-hands{display:block;animation:hands-fade 1.2s ease-out both}
+.mesa-deck.reshuffling .shuffle-left{animation:shuffle-left .95s ease-in-out both}
+.mesa-deck.reshuffling .shuffle-right{animation:shuffle-right .95s ease-in-out both}
+@keyframes hands-fade{0%,85%{opacity:1}100%{opacity:0}}
+@keyframes shuffle-left{0%,100%{transform:translateX(-18px) rotate(-18deg)}50%{transform:translateX(30px) rotate(10deg)}}
+@keyframes shuffle-right{0%,100%{transform:translateX(18px) rotate(18deg)}50%{transform:translateX(-30px) rotate(-10deg)}}
+.back-choice{white-space:nowrap}
+.back-choice select{background:#162f48;color:#f8e8c7;border:1px solid #91a2b6;border-radius:7px;padding:6px;font-size:11px}
+.mesa-deck .deck-title{font-weight:bold;letter-spacing:1px;color:#e8c988}
+@media(max-width:1000px){
+ .mesa-stage{width:calc(100% - 50px);margin:12px auto 8px}
+ .mesa-pile.pos-1{left:8%}.mesa-pile.pos-3{right:8%}
+}
+@media(max-width:600px){
+ .mesa-demo{--card-w:46px}
+ .mesa-stage{width:calc(100% - 34px);margin:12px auto 8px}
+ .mesa-pile{--played-step:16px}
+ .mesa-pile.pos-0{left:50%;bottom:19px}
+ .mesa-pile.pos-2{left:50%;top:24px}
+ .mesa-pile.pos-1{left:2%}.mesa-pile.pos-3{right:2%}
+ .mesa-hand-slot{width:67px;height:101px}
+ .mesa-deck{display:flex;left:8%;bottom:8px;transform:scale(.63);transform-origin:bottom left}
+ .mesa-toolbar .back-choice{display:none}
+ .mesa-controls{max-width:100%;flex-wrap:wrap}
+ .mesa-status{max-width:88vw}
+}
+@media(max-height:600px) and (min-width:600px){
+ .mesa-stage{width:min(86%,900px)}
+ .mesa-demo{--card-w:49px}
+ .mesa-hand-slot{width:62px;height:94px}
+ .mesa-deck{transform:scale(.55);transform-origin:bottom left}
+}
+@media(prefers-reduced-motion:reduce){
+ .mesa-deck.reshuffling .mesa-shuffle-hands,.mesa-deck.reshuffling .shuffle-hand{animation:none;display:none}
+}
