@@ -24,16 +24,17 @@ class Match{
   if(this.matchWinner!==null)return false;if(this.handNo)this.mano=(this.mano+1)%this.count;
   this.handNo++;const d=DECK.map(c=>({...c}));for(let i=d.length-1;i>0;i--){const j=Math.floor(this.rng()*(i+1));[d[i],d[j]]=[d[j],d[i]]}
   this.hands=Array.from({length:this.count},()=>[]);for(let i=0;i<3;i++)for(const p of this.order())this.hands[p].push(d.pop());
-  this.original=this.hands.map(h=>h.slice());this.vira=d.pop();this.played=Array.from({length:this.count},()=>[]);
+  this.original=this.hands.map(h=>h.slice());this.vira=d.pop();this.played=Array.from({length:this.count},()=>[]);this.coveredPlay=null;
   this.baza=[];this.results=[];this.turn=this.mano;this.leader=this.mano;this.phase='playing';this.pending=null;this.trucoValue=1;this.lastTrucoTeam=null;
   this.envidoDone=false;this.florResolved=false;this.law=Array(this.count).fill(null);this.florDeclared=Array(this.count).fill(false);
   this.speech=Array(this.count).fill('');this.awards=[];this.handResult=null;this.lastError='';this.notice=null;
-  this.emit('hand','Mano '+this.handNo+': abre '+this.name(this.mano)+'.');return true;
+  this.emit('shuffle','Barajando las 40 cartas para la mano '+this.handNo+'.');this.emit('hand','Mano '+this.handNo+': abre '+this.name(this.mano)+'.');return true;
  }
  hasFlor(p){return flor(this.original[p],this.vira)>0}
  atTurn(p){return this.phase==='playing'&&!this.pending&&this.turn===p}
  needsFlor(p){return this.hasFlor(p)&&!this.florDeclared[p]}
  canPlay(p){return this.atTurn(p)&&(!this.needsFlor(p)||(!this.played[p].length&&['aley','mixed'].includes(this.law[p])&&p!==this.pie()))}
+ canPlayCovered(p){return this.count===4&&this.canPlay(p)&&this.results.length===1&&this.baza.length===this.count-1&&this.played[p].length===1&&this.hands[p].filter(Boolean).length===2&&!this.coveredPlay}
  canEnvido(p){return this.atTurn(p)&&!this.envidoDone&&!this.played[p].length&&!this.florResolved}
  nextTruco(){return ({1:3,3:6,6:9,9:24})[this.trucoValue]||null}
  canTruco(p){return this.atTurn(p)&&this.nextTruco()!==null&&this.lastTrucoTeam!==team(p)}
@@ -69,9 +70,17 @@ class Match{
  }
  award(t,points,reason,p=null){
   if(this.matchWinner!==null||!Number.isInteger(points)||points<=0)return false;
-  this.scores[t]+=points;const item={team:t,points,reason,p};this.awards.push(item);
-  const text=(t===0?'Tu equipo':'Rivales')+' +'+points+' · '+reason+'. Marcador '+this.scores[0]+' — '+this.scores[1]+'.';
-  this.emit('score',text,p,item);this.receipt(text);this.checkMatch();return true;
+  const item={team:t,points,reason,p};this.awards.push(item);
+  const msg='Canto resuelto: '+reason+'. Los '+points+' tantos de '+(t===0?'tu equipo':'los rivales')+' se anotarán al finalizar la mano.';
+  this.emit('pending-score',msg,p,item);this.receipt(msg);return true;
+ }
+ settleHand(){
+  for(const item of this.awards){
+   if(this.matchWinner!==null)break;
+   this.scores[item.team]+=item.points;
+   this.emit('score',(item.team===0?'Tu equipo':'Rivales')+' +'+item.points+' · '+item.reason+'. Marcador '+this.scores[0]+' — '+this.scores[1]+'.',item.p,item);
+   this.checkMatch();
+  }
  }
  checkMatch(){const t=this.scores.findIndex(s=>s>=24);if(t<0)return false;this.matchWinner=t;this.phase='match-over';this.pending=null;this.handResult=(t===0?'Tu equipo':'Rivales')+' gana la partida.';return true}
  finishFlor(){
@@ -79,7 +88,7 @@ class Match{
   const holders=this.order().filter(p=>this.florDeclared[p]),teams=new Set(holders.map(team));let winner=holders[0],points=3;
   if(teams.size===1)points=holders.length*3;else for(const p of holders)if(flor(this.original[p],this.vira)>flor(this.original[winner],this.vira))winner=p;
   this.pending=null;this.florResolved=true;this.award(team(winner),points,teams.size===1?'flor cantada':'comparación de flores',winner);
-  if(this.matchWinner!==null)return true;if(q.resume)this.pending=q.resume;
+  if(q.resume)this.pending=q.resume;
   if(q.follow?.kind==='truco')this.call(q.follow.p,'truco');
   if(q.follow?.kind==='respond'&&this.pending)this.respond(q.follow.p,q.follow.choice,q.follow.extra);
   return true;
@@ -112,16 +121,53 @@ class Match{
  play(p,slot){
   if(!this.canPlay(p)||!Number.isInteger(slot)||!this.hands[p][slot])return false;
   const c=this.hands[p][slot];this.hands[p][slot]=null;this.played[p].push(c);this.baza.push({p,c});this.emit('card',this.name(p)+' juega '+c.n+' de '+c.s+'.',p);
-  if(this.baza.length===this.count)this.phase='baza-over';else this.turn=(p+1)%this.count;return true;
+  if(this.baza.length===this.count)this.phase='baza-over';
+  else{
+   this.turn=(p+1)%this.count;
+   if(this.results.length===2&&this.coveredPlay&&this.turn===this.coveredPlay.p)this.turn=(this.turn+1)%this.count;
+  }
+  return true;
+ }
+ playCovered(p,hiddenSlot,topSlot){
+  if(!this.canPlayCovered(p)||!Number.isInteger(hiddenSlot)||!Number.isInteger(topSlot)||hiddenSlot===topSlot||!this.hands[p][hiddenSlot]||!this.hands[p][topSlot])return this.error('Solo el último jugador de la segunda vuelta puede matar tapado con sus dos cartas restantes.');
+  const hidden=this.hands[p][hiddenSlot],top=this.hands[p][topSlot];
+  this.hands[p][hiddenSlot]=null;this.hands[p][topSlot]=null;
+  this.played[p].push(hidden,top);
+  this.coveredPlay={p,hidden,top,didKill:null,revealed:false};
+  this.baza.push({p,c:hidden});this.phase='baza-over';
+  this.emit('card',this.name(p)+' mata tapado: juega segunda y tercera carta juntas. Se comprueba al terminar la mano.',p);
+  return true;
  }
  resolveBaza(){
   if(this.phase!=='baza-over')return false;
   const best=Math.max(...this.baza.map(x=>power(x.c,this.vira))),top=this.baza.filter(x=>power(x.c,this.vira)===best),tied=new Set(top.map(x=>team(x.p))).size>1,winner=tied?null:team(top[0].p);
-  this.results.push(winner);this.leader=top[0].p;this.emit('baza','Baza '+this.results.length+': '+(tied?'parda.':this.name(top[0].p)+' gana.'));
+  this.results.push(winner);this.leader=top[0].p;
+  if(this.results.length===2&&this.coveredPlay){
+   const covered=this.coveredPlay,opponents=this.baza.filter(x=>team(x.p)!==team(covered.p));
+   covered.didKill=opponents.length>0&&power(covered.hidden,this.vira)>Math.max(...opponents.map(x=>power(x.c,this.vira)));
+   this.emit('baza','Baza 2: matar tapado. Se verificará al terminar la mano.');
+  }else this.emit('baza','Baza '+this.results.length+': '+(tied?'parda.':this.name(top[0].p)+' gana.'));
   const result=handWinner(this.results,team(this.mano));if(result!==null){this.endHand(result,this.trucoValue,'Mano decidida');return true}
-  this.baza=[];this.turn=this.leader;this.phase='playing';return true;
+  this.baza=[];this.turn=this.leader;this.phase='playing';
+  if(this.results.length===2&&this.coveredPlay){
+   this.baza.push({p:this.coveredPlay.p,c:this.coveredPlay.top});
+   if(this.turn===this.coveredPlay.p)this.turn=(this.turn+1)%this.count;
+  }
+  return true;
  }
- endHand(winner,points,reason){if(['hand-over','match-over'].includes(this.phase))return false;this.pending=null;this.phase='hand-over';this.handResult=reason+': '+(winner===0?'tu equipo':'rivales')+' suma '+points+'.';this.award(winner,points,reason);return true}
+ endHand(winner,points,reason){
+  if(['hand-over','match-over'].includes(this.phase))return false;
+  this.pending=null;this.phase='hand-over';
+  if(this.coveredPlay){
+   this.coveredPlay.revealed=true;
+   this.emit('reveal','Matar tapado: '+(this.coveredPlay.didKill?'sí mató al contrario.':'era un embuste o no alcanzó para matar.')+' Carta oculta: '+this.coveredPlay.hidden.n+' de '+this.coveredPlay.hidden.s+'.',this.coveredPlay.p);
+  }
+  this.award(winner,points,reason);this.settleHand();
+  this.handResult=reason+': '+(winner===0?'tu equipo':'rivales')+' gana el Truco de esta mano. Tantos anotados al finalizar: '+this.awards.map(a=>(a.team===0?'nosotros ':'rivales ')+a.points+' ('+a.reason+')').join(', ')+'.';
+  if(this.coveredPlay)this.handResult+=' Matar tapado: '+(this.coveredPlay.didKill?'era cierto.':'no mató: embuste.');
+  if(this.matchWinner!==null)this.handResult+=(this.matchWinner===0?' Tu equipo':' Los rivales')+' gana la partida.';
+  return true;
+ }
  botAction(p=null){
   if(this.phase!=='playing')return false;
   if(this.pending){
@@ -135,6 +181,11 @@ class Match{
   if(this.canEnvido(who)&&envido(this.original[who],this.vira)>=29&&this.rng()<.3)return this.call(who,'envido');
   if(this.canTruco(who)&&Math.max(...this.hands[who].filter(Boolean).map(c=>power(c,this.vira)))>=98&&this.rng()<.15)return this.call(who,'truco');
   const available=this.hands[who].map((c,i)=>({c,i})).filter(x=>x.c).sort((a,b)=>power(a.c,this.vira)-power(b.c,this.vira));
+  if(this.canPlayCovered(who)&&this.rng()<.20){
+   const a=this.hands[who].map((c,i)=>({c,i})).filter(x=>x.c);
+   const hidden=this.rng()<.5?a[0]:a[1],top=a.find(x=>x.i!==hidden.i);
+   return this.playCovered(who,hidden.i,top.i);
+  }
   const best=this.baza.length?Math.max(...this.baza.map(x=>power(x.c,this.vira))):0,highest=this.baza.filter(x=>power(x.c,this.vira)===best),partnerWinning=highest.length&&highest.every(x=>team(x.p)===team(who));
   const pick=partnerWinning?available[0]:available.find(x=>power(x.c,this.vira)>best)||available[0];return this.play(who,pick.i);
  }
