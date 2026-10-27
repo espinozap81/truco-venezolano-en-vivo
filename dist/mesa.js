@@ -7,6 +7,31 @@ const button=(label,id,cls='',disabled=false)=>`<button class="mesa-button ${cls
 function html(el,value){if(el&&el._markup!==value){el.innerHTML=value;el._markup=value}}
 function text(el,value){if(el&&el.textContent!==String(value))el.textContent=String(value)}
 function stopTimer(){clearTimeout(timer);timer=null;timerKey=''}
+function sound(type){
+ if(!soundOn)return;
+ try{
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  audio=audio||new C();if(audio.state==='suspended')audio.resume().catch(()=>{});
+  const sounds={card:[280,160],shuffle:[175,240,195,255],envido:[345,420,500],truco:[220,278,340],flor:[490,590],win:[390,510,650,780]};
+  const tones=sounds[type]||sounds.card;
+  tones.forEach((hz,i)=>{
+   const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.095;
+   oscillator.type=type==='card'?'triangle':'sine';
+   oscillator.frequency.setValueAtTime(hz,start);
+   gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.029,start+.012);gain.gain.exponentialRampToValueAtTime(.0001,start+.087);
+   oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(start);oscillator.stop(start+.1);
+  });
+ }catch{}
+}
+function soundEvents(){
+ if(!session)return;const g=session.match,previous=session.lastSoundEvent||0;
+ for(const ev of g.events.filter(e=>e.id>previous)){
+  const type=ev.type==='shuffle'?'shuffle':ev.type==='card'?'card':ev.type==='canto'?
+   (/envido|falta|tantos/i.test(ev.text)?'envido':/truco|retruco|vale/i.test(ev.text)?'truco':'flor'):ev.type==='score'?'win':null;
+  if(type)sound(type);
+ }
+ session.lastSoundEvent=g.eventId;
+}
 function leave(){stopTimer();const old=session;session=null;$('#mesaDemo')?.remove();document.body.style.overflow=old?.bodyOverflow||'';if($('.app'))$('.app').inert=old?.appInert||false;old?.onClose?.()}
 function start({renderCard,onClose,count=4,match=null}={}){
  if(session)leave();session={match:match||new TrucoEngine.Match({count}),renderCard,onClose,bodyOverflow:document.body.style.overflow,appInert:$('.app')?.inert||false,handKey:'',noticeSeen:0,showLog:false,modal:null,error:'',lawNext:null,lastSoundEvent:0};
@@ -122,7 +147,7 @@ function renderCall(){
  }
  panel.hidden=!body;html(panel,body);$('#mesaRound').hidden=!!body;
 }
-function scheduleNext(){
+function scheduleNext(){soundEvents();
  if(!session)return;
  const g=session.match;if(waitingNotice()||session.modal||['hand-over','match-over'].includes(g.phase)){stopTimer();return}
  let key='',fn,delay;
@@ -159,6 +184,7 @@ function onClick(e){
  const target=e.target.closest('button');if(!target||target.disabled)return;const id=target.id,g=session.match;
  if(target.dataset.mesaCard!==undefined){if(waitingNotice()||session.modal)return;run(()=>g.play(0,+target.dataset.mesaCard));return}
  if(id==='mesaExit'){leave();return}
+  if(id==='mesaSound'){soundOn=!soundOn;target.textContent=soundOn?'🔊 Sonido':'🔇 Silencio';if(soundOn)sound('card');return}
  if(id==='mesaLog'){session.showLog=!session.showLog;draw();return}
  if(id==='mesaFullscreen'){(async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('#mesaDemo').requestFullscreen()}catch{dialog('Pantalla completa','<p>La mesa ocupa la ventana. Este navegador no permite ocultar sus barras.</p>',button('Continuar','mesaCloseModal','gold'))}})();return}
  if(id==='mesaNoticeContinue'){session.noticeSeen=g.notice?.id||0;draw();return}
@@ -176,6 +202,17 @@ function onClick(e){
  if(id==='mesaNext'){stopTimer();if(g.phase==='match-over'){session.match=new TrucoEngine.Match({count:g.count});session.handKey=''}else g.nextHand();draw();return}
  if(id==='mesaCloseModal'){session.lawNext=null;closeModal();return}
  if(id==='mesaEnvido'){if(g.needsFlor(0)&&!['aley','mixed'].includes(g.law[0]))lawDialog('envido');else run(()=>g.call(0,'envido'));return}
+  if(id==='mesaEnvidoOptions'){
+   if(!g.canEnvido(0))return;
+   if(g.needsFlor(0)&&!['aley','mixed'].includes(g.law[0])){lawDialog('envido');return}
+   dialog('Cantar Envite','<p>Elige tantos entre 1 y 24 o apuesta la falta del equipo que va adelante: '+g.falta()+' tantos.</p><label>Tantos <input type="number" id="mesaBetAmount" min="1" max="24" value="4"></label>',
+    button('Envido tantos','mesaBetExact','gold')+button('Envido la falta','mesaBetFalta')+button('Cancelar','mesaCloseModal'));
+   return;
+  }
+  if(id==='mesaBetExact'||id==='mesaBetFalta'){
+   const value=id==='mesaBetFalta'?'falta':Number($('#mesaBetAmount')?.value);
+   session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.call(0,'envido',value));return;
+  }
  if(id==='mesaTruco'){run(()=>g.needsFlor(0)?g.callFlor(0,{kind:'truco',p:0}):g.call(0,'truco'));return}
  if(id==='mesaFlor'){run(()=>g.pending?.kind==='flor'?g.respond(0,'flor'):g.callFlor(0));return}
  if(id==='mesaLaw'){lawDialog();return}
@@ -184,7 +221,10 @@ function onClick(e){
   run(()=>{if(id==='mesaLawFlor')return g.callFlor(0);const ok=g.declareLaw(0,({mesaLawA:'aley',mesaLawMixed:'mixed',mesaLawNone:'sinley'})[id]);if(ok&&next==='envido')return g.call(0,'envido');return ok});return;
  }
  if(id==='mesaReplyFlor'){run(()=>g.pending?.kind==='flor'?g.respond(0,'flor'):g.callFlor(0,g.pending?.kind==='truco'?{kind:'respond',p:0,choice:'yes'}:null));return}
- if(id==='mesaYes'||id==='mesaNo'||id==='mesaRaise'){const extra=Number($('#mesaRaiseAmount')?.value||2);run(()=>g.respond(0,id==='mesaYes'?'yes':id==='mesaNo'?'no':'raise',extra));return}
+ if(id==='mesaYes'||id==='mesaNo'||id==='mesaRaise'||id==='mesaRaiseFalta'){
+   const extra=Number($('#mesaRaiseAmount')?.value||2);
+   run(()=>g.respond(0,id==='mesaYes'?'yes':id==='mesaNo'?'no':id==='mesaRaiseFalta'?'raiseFalta':'raise',extra));return;
+  }
  if(id==='mesaFold'){dialog('¿Ir al mazo?',`<p>Los rivales sumarán ${g.trucoValue} tantos por el truco.</p>`,button('Seguir jugando','mesaCloseModal','gold')+button('Ir al mazo','mesaConfirmFold'));return}
  if(id==='mesaConfirmFold'){session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.endHand(1,g.trucoValue,'Tu equipo fue al mazo'));return}
  if(id==='mesaPractice'){dialog('Ensayar una jugada','<p>Empieza una partida de práctica con una situación concreta. Se reinicia el marcador de esta prueba.</p>',button('Tengo flor','mesaPracticeFlor','gold')+button('Me envidan','mesaPracticeEnvite')+button('Envidar a rivales bajos','mesaPracticeNo')+button('Matar tapado','mesaPracticeCovered')+button('Volver','mesaCloseModal'));return}
