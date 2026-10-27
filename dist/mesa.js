@@ -183,6 +183,34 @@ function practice(kind){
  if(kind==='envite'){g.mano=1;g.turn=1;g.leader=1;g.call(1,'envido')}
  session.match=g;session.lastSoundEvent=0;session.modal=null;session.noticeSeen=0;session.error='';mount();draw();
 }
+function openTome(){
+ const g=session.match;
+ const current=g.pending?g.pending.kind==='flor'?'Hay una Flor anunciada: corresponde declarar Flor o responder según tus cartas.':
+  ['flor-choice','flor-achico','flor-envite'].includes(g.pending.kind)?'Hay dos Flores contrarias: decide si envidar, achicar, querer o replicar.':
+  'Hay un canto pendiente: primero se decide la apuesta; luego continúan las cartas.':
+  g.phase==='hand-over'?'Terminó la mano. Antes del siguiente reparto, revisa los tantos y las cartas.':
+  g.atTurn(0)?'Es tu turno en la ronda '+Math.min(3,g.results.length+1)+'. '+(!g.played[0].length?'Puedes cantar Envite y Truco antes de tu primera carta.': 'Puedes jugar o pasar una carta; pasar desde la primera obliga a pasar las tres.'):'Espera tu turno o el cierre de la ronda.';
+ const chapters=[
+  ['I · Preparación','Se juega con 40 cartas españolas, tres para cada participante y una vira. La vira determina las piezas Perico y Perica. Se baraja nuevamente en cada mano.','El Mano comienza y el orden continúa hacia la derecha. Los compañeros se ubican frente a frente.'],
+  ['II · Las cartas y su fuerza','La Vira señala la pinta. Las piezas superan a las cartas ordinarias. Entre las cartas restantes también existe un orden de jerarquía que puede depender de la pinta.','Para decidir una ronda se comparan las cartas en mesa. Las cartas pasadas carecen de fuerza para el Truco.'],
+  ['III · Antes de la primera carta','Al inicio de la mano se revisan las cartas para determinar si hay Flor, Flor Reservada y la fuerza del Envite. Los cantos del Envite se realizan en la primera vuelta y antes de cerrar esa oportunidad.','Se permite cantar Truco desde el primer turno. Los jugadores deben responder los cantos antes de seguir jugando cartas.'],
+  ['IV · Envite y sus aumentos','Envido querido: dos tantos en el canto inicial habitual; no querido: uno para quien lo propuso. El canto puede especificar más tantos y aceptar una subida permite aumentar lo disputado.','Quiero y tantos más propone una subida. Envido la falta reemplaza la apuesta por los puntos que le faltan al equipo delantero para llegar a la meta. Si se rechaza una subida, se cobran los tantos anteriores aceptados.'],
+  ['V · Flor común','Flor: tres cartas de la misma pinta o una pieza junto a dos cartas de la misma pinta. La Flor debe declararse al jugar la primera carta, o anunciarse A ley para declararla antes de la segunda.','Cada flor válida del mismo equipo aporta tres tantos; se deben mostrar al cierre para cobrarlos. El Pie tiene obligaciones especiales al declarar.'],
+  ['VI · Flor Reservada','Se forma con Perico y Perica más una tercera carta cualquiera. A diferencia de una Flor ordinaria, puede mantenerse sin declarar al comienzo, sin pronunciar A ley.','Puede participar en Envites sin revelar su tenencia. Su cobro depende de los cantos y de si existe Flor contraria correctamente declarada. El libro contempla casos donde cobra un tanto de Envite y tres de Flor al cierre.'],
+  ['VII · Flores en equipos contrarios','Cuando hay Flor en ambos equipos se abre una disputa entre Flores. El jugador que tiene prioridad de Mano puede decir Mi flor envida o Mi flor es chica.','Se puede querer, no querer o aumentar el Envite. Si ambas flores se achican, la de mayor valor gana tres tantos. Las situaciones con Reservada tienen excepciones.'],
+  ['VIII · Pasar cartas','Pasar significa jugar boca abajo. La carta pierde fuerza para el Truco, pero conserva su participación en el Envite. Puede pasarse la segunda o la tercera por separado.','Si decides pasar tu primera carta, quedas obligado a pasar las tres. Es una estrategia de ocultamiento, no una carta ganadora.'],
+  ['IX · Matar tapado','Esta jugada es distinta de pasar: quien corresponde en la segunda vuelta puede presentar sus dos últimas cartas juntas, escondiendo una debajo de la otra, según las condiciones aplicables.','Puede tratarse de una jugada real o un embuste. Al terminar la mano debe comprobarse la carta que quedó oculta.'],
+  ['X · Rondas, pardas y final','Cada jugador dispone de tres cartas y normalmente se resuelve el Truco con hasta tres rondas. La mano puede decidirse antes de la tercera, y los empates o pardas determinan prioridades especiales.','Los tantos del Envite y la Flor se resuelven antes del Truco. En esta prueba, el marcador visible se actualiza al cerrar la mano, y el objetivo es 24 tantos.'],
+  ['XI · Estrategia práctica','No siempre conviene matar una carta rival: pasar una carta fuerte después de ganar una ronda puede invitar al rival a cantar Truco. Conocer la posición de Mano y Pie ayuda a decidir cuándo cantar.','Las señas entre compañeros, el juego a ley, las flores rivales y el manejo de la Reservada hacen que dos manos iguales se jueguen de maneras distintas.'],
+  ['XII · Alcance de esta demo','El tomo explica las situaciones principales a partir del libro de Francisco A. Solé, en palabras propias. No reproduce el texto completo del libro.','La demo todavía simplifica algunas jugadas especiales, la resolución avanzada de pardas y parte de los Envites con ley. Conserva temporalmente la variante de doble rechazo por equipo.']
+ ];
+ const body='<div class="tomo-intro"><b>Tu situación actual</b><p>'+safe(current)+'</p><p class="mesa-help-note">Guía de jugadas basada en El Juego de Truco Venezolano, de Francisco A. Solé. Las reglas están resumidas; la demo no reproduce el libro.</p></div>'+
+ chapters.map(([heading,a,b],i)=>'<details class="tomo-chapter" '+(i===0?'open':'')+'><summary>'+safe(heading)+'</summary><p>'+safe(a)+'</p><p>'+safe(b)+'</p></details>').join('')+
+ '<p class="mesa-help-note">Referencia: <a href="https://es.scribd.com/document/1054730709/El-Libro-El-Juego-de-Truco-de-Francisco-a-Sole" target="_blank" rel="noopener noreferrer">Consultar obra de Francisco A. Solé</a>. Las variantes regionales se deben acordar antes de una partida real.</p>';
+ dialog('Tomo de reglas · Solé',body,button('Volver a la mesa','mesaCloseModal','gold'));
+ $('#mesaDialogTitle').closest('.mesa-dialog').classList.add('tomo-dialog');
+}
+
 function onClick(e){
  const target=e.target.closest('button');if(!target||target.disabled)return;const id=target.id,g=session.match;
  if(target.dataset.mesaCard!==undefined){if(waitingNotice()||session.modal)return;run(()=>g.play(0,+target.dataset.mesaCard));return}
@@ -202,7 +230,8 @@ function onClick(e){
    session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.playPassed(0,slot));return;
   }
   if(id==='mesaSound'){soundOn=!soundOn;target.textContent=soundOn?'🔊 Sonido':'🔇 Silencio';if(soundOn)sound('card');return}
- if(id==='mesaLog'){session.showLog=!session.showLog;draw();return}
+ if(id==='mesaTomo'){openTome();return}
+  if(id==='mesaLog'){session.showLog=!session.showLog;draw();return}
  if(id==='mesaFullscreen'){(async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('#mesaDemo').requestFullscreen()}catch{dialog('Pantalla completa','<p>La mesa ocupa la ventana. Este navegador no permite ocultar sus barras.</p>',button('Continuar','mesaCloseModal','gold'))}})();return}
  if(id==='mesaNoticeContinue'){session.noticeSeen=g.notice?.id||0;draw();return}
   if(id==='mesaCover'){
