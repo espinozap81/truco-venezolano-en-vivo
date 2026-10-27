@@ -14,7 +14,7 @@ Abrir `http://localhost:8765/?mesa=1` (o `PROBAR.html` tras descomprimir el ZIP)
 Me envidan, Envidar a rivales bajos y Matar tapado. Cada ensayo reinicia su marcador.
 
 - Orden: tú → rival derecho → compañero enfrente → rival izquierdo. El mano
-  rota en cada reparto y el ganador de la baza inicia la siguiente.
+  rota en cada reparto y el ganador de la ronda inicia la siguiente.
 - Las cartas jugadas permanecen en su asiento, superpuestas dejando visible
   los valores de las anteriores. Matar tapado coloca la segunda debajo de la tercera,
   oculta hasta la terminación de la mano (puede ser un embuste). Se conservan
@@ -35,7 +35,7 @@ Me envidan, Envidar a rivales bajos y Matar tapado. Cada ensayo reinicia su marc
   de la primera carta; se canta antes de la segunda, de cantar Truco o de
   aceptarlo. El pie debe cantarla en la primera. Sin ley declara ausencia de
   flor. Cada jugador responde a la flor, y el recibo informa el pago pendiente.
-- Entrada a 12 muestra Fuera/Dentro; victoria a 24. Hasta tres bazas, con pardas
+- Entrada a 12 muestra Fuera/Dentro; victoria a 24. Hasta tres rondas, con pardas
   y cierre anticipado. Las cartas permanecen hasta Siguiente mano; cada nuevo
   reparto baraja las 40 cartas otra vez, con animación del mazo.
 
@@ -87,7 +87,7 @@ Rama de revisión: `demo/mesa-azul-cruz`. Revisar antes de fusionar o publicar.
 ## Pruebas específicas de esta revisión
 
 - Envido aceptado o rechazado: el marcador queda intacto mientras continúa la mano.
-- Flor cantada: figura como pendiente; no suma hasta cierre por bazas o ir al mazo.
+- Flor cantada: figura como pendiente; no suma hasta cierre por rondas o ir al mazo.
 - El cierre paga primero los pendientes y luego el tanto del Truco; una victoria
   a 24 se determina en el cierre, sin puntuar dos veces.
 - Barajado nuevo en cada mano, orden variable y sin cartas repetidas.
@@ -130,3 +130,19 @@ Rama de revisión: `demo/mesa-azul-cruz`. Revisar antes de fusionar o publicar.
   respuestas No quiero para rechazar en equipo, aunque la primera
   respuesta válida en Solé sigue pendiente de conciliación.
 - No incorpora jugadores en línea ni integra cuentas reales.
+
+## Nueva prueba: flores, pasar y Tomo de reglas
+
+- Botón **Tomo de reglas**: doce capítulos resumidos a partir de Francisco A. Solé,
+  con guía según la situación actual de la mano, disponible dentro de la mesa.
+- Botón **Pasar carta**: elegir cuál se juega boca abajo; pierde fuerza para Truco
+  pero conserva su valor para Envite. Si se pasa la primera, deben pasarse las tres.
+- **Flores enfrentadas**: quien tiene prioridad abre Mi flor envida o Mi flor es chica.
+  Si ambas se achican, se comparan las flores; si se envida, se puede aceptar,
+  rechazar o responder con tantos adicionales o la falta.
+- **Flor Reservada**: Perico y Perica más otra carta pueden mantenerse ocultos,
+  jugar Envite y continuar sin cantar Flor ni A ley. El cobro al cierre depende
+  de si hubo otras flores correctamente declaradas.
+- En pantalla el nombre del turno es **Ronda**, no Baza.
+- Pendientes: comprobar visualmente el flujo completo en escritorio y móvil,
+  y cotejar las excepciones avanzadas del libro antes de afirmar fidelidad total.
