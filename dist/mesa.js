@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-let session=null,timer=null,timerKey='',fast=false;
+let session=null,timer=null,timerKey='',fast=false,soundOn=true,backColor='blue',audio=null;
 const $=s=>document.querySelector(s);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button=(label,id,cls='',disabled=false)=>`<button class="mesa-button ${cls}" id="${id}" ${disabled?'disabled':''}>${label}</button>`;
@@ -9,25 +9,26 @@ function text(el,value){if(el&&el.textContent!==String(value))el.textContent=Str
 function stopTimer(){clearTimeout(timer);timer=null;timerKey=''}
 function leave(){stopTimer();const old=session;session=null;$('#mesaDemo')?.remove();document.body.style.overflow=old?.bodyOverflow||'';if($('.app'))$('.app').inert=old?.appInert||false;old?.onClose?.()}
 function start({renderCard,onClose,count=4,match=null}={}){
- if(session)leave();session={match:match||new TrucoEngine.Match({count}),renderCard,onClose,bodyOverflow:document.body.style.overflow,appInert:$('.app')?.inert||false,handKey:'',noticeSeen:0,showLog:false,modal:null,error:'',lawNext:null};
+ if(session)leave();session={match:match||new TrucoEngine.Match({count}),renderCard,onClose,bodyOverflow:document.body.style.overflow,appInert:$('.app')?.inert||false,handKey:'',noticeSeen:0,showLog:false,modal:null,error:'',lawNext:null,lastSoundEvent:0};
  document.body.style.overflow='hidden';if($('.app'))$('.app').inert=true;
- const root=document.createElement('section');root.id='mesaDemo';root.className='mesa-demo';root.setAttribute('aria-label','Mesa de Truco de prueba');document.body.append(root);mount();draw();$('#mesaExit').focus();
+ const root=document.createElement('section');root.id='mesaDemo';root.className='mesa-demo';root.dataset.back=backColor;root.setAttribute('aria-label','Mesa de Truco de prueba');document.body.append(root);mount();draw();$('#mesaExit').focus();
 }
 function card(c){return session.renderCard([c.n===1?'As':c.n===10?'Sota':c.n===11?'Caballo':c.n===12?'Rey':String(c.n),c.s])}
 function mount(){
  const g=session.match,positions=g.count===2?[0,2]:[0,3,2,1];
- $('#mesaDemo').innerHTML=`<header class="mesa-toolbar"><div class="mesa-brand">Truco Venezolano<small>MESA AZUL · CANTOS POR EQUIPOS</small></div><div class="mesa-toolbar-actions"><label class="speed-label"><input id="mesaFast" type="checkbox" ${fast?'checked':''}>Prueba rápida</label>${button('Ensayar','mesaPractice')}${button('Historial','mesaLog')}${button('⛶','mesaFullscreen')}${button('Salir','mesaExit')}</div></header>
+ $('#mesaDemo').innerHTML=`<header class="mesa-toolbar"><div class="mesa-brand">Truco Venezolano<small>MESA AZUL · CANTOS POR EQUIPOS</small></div><div class="mesa-toolbar-actions"><label class="speed-label"><input id="mesaFast" type="checkbox" ${fast?'checked':''}>Prueba rápida</label><label class="back-choice">Dorso <select id="mesaBackColor" aria-label="Color del dorso"><option value="blue" ${backColor==='blue'?'selected':''}>Azul</option><option value="red" ${backColor==='red'?'selected':''}>Rojo</option></select></label>${button(soundOn?'🔊 Sonido':'🔇 Silencio','mesaSound')}${button('Ensayar','mesaPractice')}${button('Historial','mesaLog')}${button('⛶','mesaFullscreen')}${button('Salir','mesaExit')}</div></header>
  <div class="mesa-stage"><div class="mesa-wood"><div class="mesa-cloth"><div class="mesa-watermark">TRUCO<small>VENEZOLANO</small></div></div></div>
  ${positions.map((pos,p)=>`<div id="mesaSeat${p}" class="mesa-seat pos-${pos} ${p%2===0?'partner':''}"><span class="person-icon">${['PE','RD','TC','RI'][p]}</span><div><b>${safe(g.name(p))}</b><small></small></div></div><div id="mesaSpeech${p}" class="mesa-speech pos-${pos}" hidden></div><div id="mesaPile${p}" class="mesa-pile pos-${pos}" aria-label="Cartas jugadas por ${safe(g.name(p))}"></div>${p?`<div id="mesaBacks${p}" class="mesa-backs pos-${pos}"></div>`:''}`).join('')}
  <div class="mesa-corner-score rival-score" id="mesaScore1" aria-label="Puntuación de rivales"><span>RIVALES</span><strong>0</strong><small>FUERA · META 24</small><em></em></div>
  <div class="mesa-corner-score our-score" id="mesaScore0" aria-label="Puntuación de tu equipo"><span>TU EQUIPO</span><strong>0</strong><small>FUERA · META 24</small><em></em></div>
  <div class="mesa-round-info" id="mesaRound"></div><section class="mesa-call-panel" id="mesaCallPanel" aria-label="Avisos y respuestas de cantos" hidden></section>
- <div class="mesa-vira" id="mesaVira">VIRA<div></div></div><div class="mesa-deck"><div class="mesa-back"></div>MAZO</div></div>
+ <div class="mesa-vira" id="mesaVira">VIRA<div></div></div><div class="mesa-deck"><div class="mesa-back"></div><div class="mesa-shuffle-hands" aria-hidden="true"><span class="shuffle-hand shuffle-left">🫲</span><span class="shuffle-hand shuffle-right">🫱</span></div><span class="deck-title">MAZO</span></div></div>
  <div class="mesa-status" id="mesaStatus" role="status" aria-live="polite"></div>
  <footer class="mesa-foreground"><div class="mesa-controls" id="mesaControls"></div><div><div class="mesa-hand" id="mesaHand"></div><div class="mesa-hint" id="mesaHint"></div></div><div class="mesa-meta" id="mesaMeta"></div></footer>
  <aside class="mesa-history" id="mesaHistory" hidden></aside><div id="mesaModalRoot"></div>`;
  $('#mesaDemo').onclick=onClick;
  $('#mesaFast').onchange=e=>{fast=e.target.checked;stopTimer();draw()};
+  $('#mesaBackColor').onchange=e=>{backColor=e.target.value;$('#mesaDemo').dataset.back=backColor};
  $('#mesaFullscreen').setAttribute('aria-label','Alternar pantalla completa');
  session.handKey='';
 }
@@ -87,7 +88,7 @@ function draw(){
  html($('#mesaRound'),`<b>Mano ${g.handNo} · ${round}</b><span>Truco: ${g.trucoValue} tanto${g.trucoValue===1?'':'s'}</span><small>${g.results.map((t,i)=>`${i+1}: ${i===1&&g.coveredPlay&&!g.coveredPlay.revealed?'Tapada':t===null?'Parda':t===0?'Nosotros':'Rivales'}`).join(' · ')||'Turno hacia la derecha'}</small>`);
  const disabled=waitingNotice()||!!session.modal;
  const florButton=g.hasFlor(0)&&!g.florDeclared[0];
- html($('#mesaControls'),`${button('Envido','mesaEnvido','',!g.canEnvido(0)||disabled)}${button(florButton?'Flor y '+g.callName(g.nextTruco()):g.callName(g.nextTruco()),'mesaTruco','',!g.canTruco(0)||disabled)}${button('Flor','mesaFlor',florButton?'gold':'',!florButton||!g.canDeclare(0)||disabled)}${button('Matar tapado','mesaCover','',!g.canPlayCovered(0)||disabled)}${button('A ley / Sin ley','mesaLaw','',!g.canDeclare(0)||!!g.played[0].length||g.florDeclared[0]||disabled)}${button('Ir al mazo','mesaFold','',!g.atTurn(0)||disabled)}${button('Reglas','mesaHelp')}`);
+ html($('#mesaControls'),`${button('Envido','mesaEnvido','',!g.canEnvido(0)||disabled)}${button('Envido X / Falta','mesaEnvidoOptions','',!g.canEnvido(0)||disabled)}${button(florButton?'Flor y '+g.callName(g.nextTruco()):g.callName(g.nextTruco()),'mesaTruco','',!g.canTruco(0)||disabled)}${button('Flor','mesaFlor',florButton?'gold':'',!florButton||!g.canDeclare(0)||disabled)}${button('Matar tapado','mesaCover','',!g.canPlayCovered(0)||disabled)}${button('A ley / Sin ley','mesaLaw','',!g.canDeclare(0)||!!g.played[0].length||g.florDeclared[0]||disabled)}${button('Ir al mazo','mesaFold','',!g.atTurn(0)||disabled)}${button('Reglas','mesaHelp')}`);
  const flowerHint=g.needsFlor(0)?g.played[0].length?'Tienes flor reservada: cántala antes de la segunda carta.':g.law[0]?'Flor reservada con A ley.':'Tienes flor: cántala o reserva con A ley.':'';
  let status=session.error||flowerHint||(!g.pending&&g.atTurn(0)?'Tu turno: canta o elige una carta.':!g.pending&&g.phase==='playing'?g.name(g.turn)+' está pensando…':'');
  if(g.pending)status=g.pending.kind==='flor'?'Flor en la mesa · cada jugador debe declararla o responder Sin flor.':'Canto pendiente · las cartas esperan la respuesta del equipo.';
@@ -101,7 +102,7 @@ function draw(){
  if(session.showLog)html($('#mesaHistory'),'<b>Cantos, tantos y jugadas</b>'+g.history.slice(-24).reverse().map(s=>`<p>${safe(s)}</p>`).join(''));
  scheduleNext();
 }
-function requestTitle(q){const g=session.match;return q.kind==='flor'?'¡Flor!':q.kind==='envido'?'¡Envido!':g.callName(q.amount)}
+function requestTitle(q){const g=session.match;return q.kind==='flor'?'¡Flor!':q.kind==='envido'?(q.canto||'¡Envido!'):g.callName(q.amount)}
 function renderCall(){
  const g=session.match,panel=$('#mesaCallPanel');let body='';
  if(waitingNotice())body=`<div class="call-eyebrow">CANTO RESUELTO</div><h3>Tantos pendientes</h3><p role="status">${safe(g.notice.text)}</p>${button('Continuar','mesaNoticeContinue','gold')}`;
@@ -109,13 +110,13 @@ function renderCall(){
  else if(g.pending){
   const q=g.pending,responding=g.canRespond(0);
   const rows=q.targets.map(p=>`<li><span>${safe(g.name(p))}</span><b>${q.responses[p]==='no'?(q.kind==='flor'?'Sin flor':'No quiero'):q.responses[p]==='flor'?'Flor':q.responses[p]==='yes'?'Quiero':'Esperando respuesta'}</b></li>`).join('');
-  body=`<div class="call-eyebrow">${q.kind==='flor'?'FLOR CANTADA':q.targets.includes(0)?'AVISO A TI Y A TU COMPAÑERO':'SOLICITUD AL EQUIPO CONTRARIO'}</div><h3>${safe(g.name(q.from))}: ${requestTitle(q)}</h3><p>${q.kind==='flor'?'La flor se paga después de que los jugadores respondan.':q.amount+' tantos en juego · '+q.decline+' si el equipo no quiere.'}</p><ul class="call-responses">${rows}</ul>`;
+  body=`<div class="call-eyebrow">${q.kind==='flor'?'FLOR CANTADA':q.targets.includes(0)?'AVISO A TI Y A TU COMPAÑERO':'SOLICITUD AL EQUIPO CONTRARIO'}</div><h3>${safe(g.name(q.from))}: ${requestTitle(q)}</h3><p>${q.kind==='flor'?'La flor se anotará al cerrar la mano.':q.amount+' tantos en juego · '+q.decline+' si el equipo no quiere.'}</p><ul class="call-responses">${rows}</ul>`;
   if(responding){
    if(q.kind==='flor')body+=button(g.hasFlor(0)?'Flor tengo':'Sin flor',g.hasFlor(0)?'mesaReplyFlor':'mesaNo','gold');
    else if(g.needsFlor(0))body+=`<p>Tienes flor. Debes cantarla antes de querer.</p>${button(q.kind==='truco'?'Con flor, quiero':'Con ley / Flor','mesaReplyFlor','gold')}${button('No quiero','mesaNo')}`;
    else{
     const prefix=q.kind==='envido'&&q.mode==='open'?'Sin ley, ':'';
-    body+=`<div class="call-actions">${button(prefix+'Quiero','mesaYes','gold')}${button('No quiero','mesaNo')}${q.kind==='envido'?'<label>Más tantos <input id="mesaRaiseAmount" type="number" value="2" min="1" max="24" aria-label="Tantos adicionales"></label>':''}${q.kind==='envido'||q.amount<24?button(q.kind==='envido'?'Quiero y tantas más':g.callName(({3:6,6:9,9:24})[q.amount]),'mesaRaise'):''}</div>`;
+    body+=`<div class="call-actions">${button(prefix+'Quiero','mesaYes','gold')}${button('No quiero','mesaNo')}${q.kind==='envido'&&!q.isFalta?'<label>Más tantos <input id="mesaRaiseAmount" type="number" value="2" min="1" max="24" aria-label="Tantos adicionales"></label>':''}${q.kind==='envido'&&!q.isFalta?button('Quiero y tantas más','mesaRaise'):q.kind==='truco'&&q.amount<24?button(g.callName(({3:6,6:9,9:24})[q.amount]),'mesaRaise'):''}${q.kind==='envido'&&!q.isFalta?button('Quiero y la falta','mesaRaiseFalta','gold'):''}</div>`;
    }
   }else if(q.responses[0]==='no')body+='<p class="call-reminder">Ya dijiste No quiero. Tu compañero todavía puede aceptar.</p>';
  }
@@ -188,7 +189,7 @@ function onClick(e){
  if(id==='mesaConfirmFold'){session.modal=null;$('#mesaModalRoot').replaceChildren();run(()=>g.endHand(1,g.trucoValue,'Tu equipo fue al mazo'));return}
  if(id==='mesaPractice'){dialog('Ensayar una jugada','<p>Empieza una partida de práctica con una situación concreta. Se reinicia el marcador de esta prueba.</p>',button('Tengo flor','mesaPracticeFlor','gold')+button('Me envidan','mesaPracticeEnvite')+button('Envidar a rivales bajos','mesaPracticeNo')+button('Matar tapado','mesaPracticeCovered')+button('Volver','mesaCloseModal'));return}
  if(id.startsWith('mesaPractice')){practice(id==='mesaPracticeFlor'?'flor':id==='mesaPracticeEnvite'?'envite':id==='mesaPracticeCovered'?'covered':'no');return}
- if(id==='mesaHelp'){dialog('Cantos y turnos','<p>El orden es tú → rival derecho → compañero → rival izquierdo. El mano rota en cada reparto. Quien gana la baza abre la siguiente.</p><p>Envido y Truco están disponibles desde el primer turno. A ley permite reservar la flor hasta antes de la segunda carta; el pie debe cantarla en la primera. Canta tu flor antes de Truco o de aceptarlo.</p><p>El envite llega a ambos contrarios: cualquiera puede aceptar; para rechazar deben decir No quiero los dos. Los tantos se anotan solo al terminar la mano; la respuesta queda en la mesa hasta pulsar Continuar.</p><p>La flor se declara con el botón Flor; los tantos se pagan al terminar la mano. Si hay flores rivales se comparan por tres tantos, sin contra flor. Una flor interrumpe y anula un envite pendiente sin ley.</p><p class="mesa-help-note">Práctica con bots. Después de la primera baza, el último jugador de la segunda puede tirar juntas las dos cartas restantes con Matar tapado: la segunda queda debajo de la tercera, y puede ser un embuste. Se comprueba al finalizar la mano. Se baraja de nuevo en cada reparto. Entrada a 12 indica Fuera/Dentro; meta 24. No incluye falta envido ni subidas de flor. Los cantos A ley de esta prueba reservan la flor; no implementan toda la negociación de envites con ley del reglamento completo.</p>',button('Volver','mesaCloseModal','gold'))}
+ if(id==='mesaHelp'){dialog('Cantos y turnos','<p>El orden es tú → rival derecho → compañero → rival izquierdo. El mano rota en cada reparto. Quien gana la baza abre la siguiente.</p><p>Envido y Truco están disponibles desde el primer turno. A ley permite reservar la flor hasta antes de la segunda carta; el pie debe cantarla en la primera. Canta tu flor antes de Truco o de aceptarlo.</p><p>El envite llega a ambos contrarios: cualquiera puede aceptar; para rechazar deben decir No quiero los dos. Los tantos se anotan solo al terminar la mano; la respuesta queda en la mesa hasta pulsar Continuar.</p><p>La flor se declara con el botón Flor; los tantos se pagan al terminar la mano. Si hay flores rivales se comparan por tres tantos, sin contra flor. Una flor interrumpe y anula un envite pendiente sin ley.</p><p class="mesa-help-note">Práctica con bots. Después de la primera baza, el último jugador de la segunda puede tirar juntas las dos cartas restantes con Matar tapado: la segunda queda debajo de la tercera, y puede ser un embuste. Se comprueba al finalizar la mano. Se baraja de nuevo en cada reparto. Entrada a 12 indica Fuera/Dentro; meta 24. Incluye Envido por tantos, Quiero y tantos más y Envido / Quiero y la falta; aún faltan subidas de flor. Los cantos A ley de esta prueba reservan la flor; no implementan toda la negociación de envites con ley del reglamento completo.</p>',button('Volver','mesaCloseModal','gold'))}
 }
 window.MesaDemo={start,leave};
 })();
