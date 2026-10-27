@@ -121,3 +121,14 @@
 @media(prefers-reduced-motion:reduce){
  .mesa-deck.reshuffling .mesa-shuffle-hands,.mesa-deck.reshuffling .shuffle-hand{animation:none;display:none}
 }
+
+/* Tomo de reglas navegable y legible en computadora y móvil. */
+.mesa-dialog.tomo-dialog{width:min(790px,96vw);max-height:min(85vh,860px);overflow-y:auto}
+.tomo-intro{background:#1e4764;border:1px solid #a9bdd240;border-radius:13px;padding:12px 15px;margin-bottom:14px}
+.tomo-intro b{color:#f5d38c}.tomo-intro p{margin:7px 0}
+.tomo-chapter{background:#183952;border:1px solid #7799b43b;border-radius:11px;margin:6px 0;padding:0 12px}
+.tomo-chapter summary{cursor:pointer;padding:13px 8px;color:#f4d58e;font-weight:700;font-size:14px}
+.tomo-chapter summary:hover{color:white}
+.tomo-chapter p{font-size:13px;line-height:1.65;margin:8px 8px 12px}
+.tomo-dialog a{color:#f6d38b;text-decoration:underline}
+@media(max-width:600px){.mesa-dialog.tomo-dialog{width:97vw;max-height:90vh;padding:14px}.tomo-chapter summary{font-size:12px;padding:9px 5px}.tomo-chapter p{font-size:11px}}
