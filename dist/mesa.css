@@ -1,0 +1,134 @@
+/* Mesa de ensayo: el tablero ocupa la ventana y cada asiento conserva sus cartas. */
+.mesa-demo{--cloth:#185b92;--card-w:clamp(64px,8.5vw,110px);--card-h:calc(var(--card-w)*1.5);position:fixed;inset:0;z-index:16;overflow:hidden;color:#f2f5ff;background:radial-gradient(ellipse at 50% 36%,#344353,#151d27 73%);font-family:Arial,sans-serif;display:grid;grid-template-rows:65px minmax(0,1fr) 225px}
+.mesa-demo button:focus-visible,.mesa-demo select:focus-visible,.mesa-demo input:focus-visible{outline:3px solid #ffd575;outline-offset:4px}.mesa-demo button:disabled{cursor:default;opacity:.45}.mesa-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 26px;z-index:3}.mesa-brand{font:700 19px Georgia,serif}.mesa-brand small{display:block;font:10px Arial,sans-serif;color:#b9c7d3;letter-spacing:1.7px;margin-top:5px}.mesa-toolbar-actions{display:flex;gap:7px;align-items:center}.mesa-button{border:1px solid #ffffff35;border-radius:9px;background:#ffffff0c;color:#fff;padding:9px 13px;font-size:12px;font-weight:700}.mesa-button:hover:not(:disabled){background:#ffffff22}.mesa-button.gold{background:#f5cb75;color:#292d31;border-color:#f5cb75}.mesa-toolbar label{font-size:11px;color:#d0d8e3;display:flex;align-items:center;gap:5px}.mesa-toolbar input{accent-color:#e9c273}
+.mesa-stage{position:relative;margin:12px 6.5vw 8px;min-height:0;isolation:isolate}.mesa-wood{position:absolute;inset:0;border-radius:clamp(55px,10vw,130px);padding:20px;background:repeating-linear-gradient(3deg,#724a2e 0px,#805539 3px,#906243 5px,#794b2f 8px,#a5744c 10px,#855735 13px);box-shadow:inset 0 2px 2px #edc99688,inset 0 -5px 6px #332013,0 9px 0 #39271d,0 22px 34px #0009}.mesa-cloth{width:100%;height:100%;border-radius:inherit;position:relative;background:repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,#00000006 0 1px,transparent 1px 3px),radial-gradient(ellipse at 45% 40%,#2378b4,#165182 75%,#103d67);box-shadow:inset 0 3px 16px #061b3999,inset 0 0 0 3px #0b3656,inset 0 0 0 5px #76b5da30}.mesa-cloth:before{content:'';position:absolute;inset:13px;border:1px dashed #b7ddf34d;border-radius:inherit;pointer-events:none}.mesa-watermark{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;opacity:.13;font:700 clamp(24px,3vw,44px) Georgia,serif;letter-spacing:4px;pointer-events:none}.mesa-watermark small{display:block;font:10px Arial,sans-serif;letter-spacing:6px;margin-top:8px}
+.mesa-seat{position:absolute;display:flex;align-items:center;gap:9px;padding:8px 12px;border:1px solid #ffffff35;border-radius:35px;background:#152c40ee;box-shadow:0 4px 10px #0004;z-index:4;white-space:nowrap}.mesa-seat.active{border-color:#f6cf7d;box-shadow:0 0 0 3px #f6cf7d30,0 4px 12px #0007}.mesa-seat .person-icon{height:29px;width:29px;background:#bdd4e1;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:bold;color:#18344b}.mesa-seat.partner .person-icon{background:#efd294}.mesa-seat b{font-size:12px;display:block}.mesa-seat small{font-size:10px;color:#c0d3e1;display:block;margin-top:3px}.mesa-seat.pos-0{left:50%;bottom:-17px;transform:translateX(-50%)}.mesa-seat.pos-1{left:-45px;top:50%;transform:translateY(-50%)}.mesa-seat.pos-2{left:50%;top:-18px;transform:translateX(-50%)}.mesa-seat.pos-3{right:-45px;top:50%;transform:translateY(-50%)}
+.mesa-pile{position:absolute;width:calc(var(--card-w) + 48px);height:calc(var(--card-h) + 26px);z-index:2;pointer-events:none}.mesa-pile.pos-0{left:50%;bottom:29px;transform:translateX(-50%)}.mesa-pile.pos-2{left:50%;top:44px;transform:translateX(-50%)}.mesa-pile.pos-1{left:12%;top:50%;transform:translateY(-50%)}.mesa-pile.pos-3{right:10%;top:50%;transform:translateY(-50%)}.mesa-played{position:absolute;width:var(--card-w);height:var(--card-h);left:calc(var(--i)*22px);top:calc(var(--i)*7px);border-radius:7px;box-shadow:0 5px 11px #06172c80;animation:mesa-arrive .35s ease-out;background:#fff;overflow:hidden}.mesa-played .spanish-card{width:100%;height:100%}.mesa-played .card-image{width:100%;height:100%}.mesa-played .baza-tag{position:absolute;right:3px;top:3px;background:#163a5e;color:white;border-radius:3px;padding:2px 4px;font:bold 9px Arial,sans-serif}.mesa-empty{border:1px dashed #b4d7f03d;border-radius:8px;width:var(--card-w);height:var(--card-h);display:grid;place-items:center;color:#c1e1f04d;font-size:10px;text-align:center;padding:5px}.mesa-backs{position:absolute;display:flex;gap:3px;z-index:1;opacity:.85}.mesa-backs.pos-2{top:28px;left:calc(50% + 100px)}.mesa-backs.pos-1{left:38px;top:24%}.mesa-backs.pos-3{right:38px;top:24%}.mesa-back{height:41px;width:28px;border:2px solid #e1d8bc;border-radius:4px;background:repeating-linear-gradient(45deg,#1b3d60 0 3px,#9fb5ca 3px 4px);box-shadow:0 3px 7px #0005}
+.mesa-score{position:absolute;left:50%;top:calc(50% - 17px);transform:translate(-50%,-50%);z-index:3;min-width:190px;text-align:center;background:#0c2b48e0;border:1px solid #acd4ee45;border-radius:16px;padding:11px 17px;box-shadow:0 6px 18px #05213c44}.mesa-score-row{display:flex;align-items:center;justify-content:center;gap:17px}.mesa-score strong{font:700 28px Georgia,serif}.mesa-score small{display:block;font:9px Arial,sans-serif;color:#b5d3e5;margin-top:3px}.mesa-score .score-label{font:9px Arial,sans-serif;letter-spacing:1.3px;color:#ddc18b;margin-bottom:7px}.mesa-score .bazas{font:10px Arial,sans-serif;color:#d7e7f2;border-top:1px solid #ffffff20;margin-top:7px;padding-top:7px}.mesa-vira{position:absolute;bottom:32px;right:7%;width:47px;text-align:center;z-index:3;color:#e5c98d;font-size:9px;font-weight:bold;letter-spacing:1px}.mesa-vira .spanish-card{height:70px;width:47px;border-radius:4px;box-shadow:0 3px 8px #0006;margin-top:4px}.mesa-deck{position:absolute;bottom:35px;left:8%;color:#bad4e7;font-size:9px;letter-spacing:2px}.mesa-deck .mesa-back{height:58px;width:40px;margin-bottom:6px;box-shadow:3px 2px 0 #d9d3bf,6px 4px 0 #1d3751,7px 7px 9px #0007}
+.mesa-foreground{position:relative;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:15px;padding:17px 25px 12px;background:linear-gradient(transparent,#111d2be6 30%)}.mesa-hand{display:flex;align-items:end;gap:14px;justify-content:center;min-height:160px;padding-top:9px}.mesa-hand-card{width:clamp(85px,8vw,120px);height:clamp(126px,12vw,180px);padding:0;border:2px solid #e8e5dc;border-radius:9px;position:relative;box-shadow:0 9px 23px #0009;background:#fff;transition:transform .2s,box-shadow .2s;transform:rotate(var(--tilt));overflow:hidden;flex:none;cursor:pointer}.mesa-hand-card:disabled{opacity:1;filter:brightness(.77)}.mesa-hand-card:not(:disabled):hover{transform:translateY(-18px) rotate(0deg);box-shadow:0 0 0 3px #edc574,0 15px 25px #0009}.mesa-hand-card .spanish-card{width:100%;height:100%}.mesa-hand-card .slot-number{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);border-radius:99px;background:#152d45df;color:#fff;width:19px;height:19px;display:grid;place-items:center;font:bold 10px Arial}.mesa-hand-empty{width:clamp(85px,8vw,120px);height:clamp(126px,12vw,180px);border:1px dashed #ffffff24;border-radius:9px;display:grid;place-items:center;color:#97adbf;font-size:11px}.mesa-status{position:absolute;bottom:195px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:20px;background:#142b3fe8;border:1px solid #ffffff1f;color:#e3edf5;font-size:12px;max-width:90vw;text-align:center;z-index:7;white-space:normal;pointer-events:none}.mesa-status.thinking:before{content:'●';color:#e8c479;margin-right:8px;animation:mesa-pulse 1s infinite}.mesa-controls{align-self:center;justify-self:start;display:flex;gap:7px;flex-wrap:wrap;max-width:300px}.mesa-controls .mesa-button{font-size:11px;padding:10px 12px}.mesa-meta{align-self:center;justify-self:end;max-width:220px;color:#a9bdcc;font-size:11px;line-height:1.5}.mesa-meta b{color:#f0d596}.mesa-history{position:absolute;top:68px;right:15px;z-index:12;width:min(340px,90vw);max-height:60vh;overflow:auto;background:#15283af5;border:1px solid #ffffff35;border-radius:12px;padding:17px;box-shadow:0 15px 35px #0008;font-size:12px;line-height:1.5}.mesa-history p{border-bottom:1px solid #ffffff15;padding-bottom:7px;margin-bottom:7px}.mesa-overlay{position:absolute;inset:0;background:#0715238c;backdrop-filter:blur(4px);z-index:10;display:grid;place-items:center;padding:18px}.mesa-dialog{width:min(460px,100%);background:#142c43;color:#fff;border:1px solid #b9d1e54d;padding:26px;border-radius:19px;box-shadow:0 18px 60px #0009}.mesa-dialog .eyebrow{color:#edcc8a;font-size:10px}.mesa-dialog h2{font:700 28px Georgia,serif;margin:10px 0 12px}.mesa-dialog p{font-size:13px;color:#c1d1df;line-height:1.6}.mesa-dialog-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.mesa-dialog input{background:#0b2034;border:1px solid #7f9db8;color:white;padding:9px;border-radius:7px;width:70px}.mesa-help-note{font-size:10px!important;color:#9eb4c7!important}.mesa-preview-badge{color:#e7c885;font-size:10px;letter-spacing:1px}.mesa-win-baza{color:#ffd579}.mesa-hint{font-size:10px;color:#b7cbdc;text-align:center;margin-top:6px}
+@keyframes mesa-arrive{from{opacity:.2;transform:translateY(25px) rotate(-6deg)}to{opacity:1;transform:translateY(0)}}@keyframes mesa-pulse{50%{opacity:.3}}
+@media(min-width:1600px){.mesa-stage{margin-left:9vw;margin-right:9vw}.mesa-demo{grid-template-rows:70px minmax(0,1fr) 250px}.mesa-status{bottom:220px}.mesa-hand-card{width:130px;height:195px}}
+@media(max-width:850px){.mesa-demo{--card-w:64px;grid-template-rows:60px minmax(0,1fr) 190px}.mesa-toolbar{padding:8px 12px}.mesa-brand{font-size:16px}.mesa-brand small{font-size:8px;letter-spacing:1px}.mesa-toolbar .speed-label{display:none}.mesa-toolbar .mesa-button{padding:8px;font-size:10px}.mesa-stage{margin:19px 45px 10px}.mesa-wood{padding:13px;border-radius:70px}.mesa-seat{padding:6px 8px;gap:5px}.mesa-seat b{font-size:10px}.mesa-seat small{font-size:8px}.mesa-seat .person-icon{width:23px;height:23px;font-size:9px}.mesa-seat.pos-1{left:-35px}.mesa-seat.pos-3{right:-35px}.mesa-pile.pos-1{left:6%;top:48%}.mesa-pile.pos-3{right:3%;top:48%}.mesa-score{min-width:143px;padding:8px;top:49%}.mesa-score strong{font-size:23px}.mesa-score-row{gap:12px}.mesa-score .score-label{font-size:8px}.mesa-score small{font-size:8px}.mesa-score .bazas{font-size:8px}.mesa-pile.pos-0{bottom:23px}.mesa-pile.pos-2{top:38px}.mesa-foreground{grid-template-columns:1fr auto;gap:8px;padding:10px 13px}.mesa-meta{display:none}.mesa-controls{max-width:145px;gap:5px}.mesa-controls .mesa-button{font-size:10px;padding:8px}.mesa-hand{gap:8px;min-height:140px}.mesa-hand-card,.mesa-hand-empty{width:80px;height:120px}.mesa-status{bottom:168px;font-size:10px;padding:7px 11px;max-width:94vw}.mesa-vira{right:8%;bottom:24px;width:35px}.mesa-vira .spanish-card{width:35px;height:52px}.mesa-deck{bottom:25px}.mesa-deck .mesa-back{height:44px;width:29px}.mesa-backs.pos-2{left:calc(50% + 75px);top:18px}.mesa-backs.pos-1{left:15px;top:18%}.mesa-backs.pos-3{right:15px;top:18%}.mesa-back{width:19px;height:28px}.mesa-played{left:calc(var(--i)*17px)}.mesa-pile{width:98px;height:110px}}
+@media(max-width:520px){.mesa-demo{--card-w:49px;grid-template-rows:57px minmax(0,1fr) 197px}.mesa-brand{font-size:14px}.mesa-toolbar{gap:4px}.mesa-toolbar-actions{gap:4px}.mesa-preview-badge{display:none}.mesa-stage{margin:20px 25px 10px}.mesa-wood{padding:11px;border-radius:58px}.mesa-seat.pos-1{left:-18px;top:50%;writing-mode:vertical-rl}.mesa-seat.pos-3{right:-18px;top:50%;writing-mode:vertical-rl}.mesa-seat.pos-1 small,.mesa-seat.pos-3 small{display:none}.mesa-seat .person-icon{display:none}.mesa-seat{padding:6px 9px}.mesa-score{min-width:0;width:140px;top:49%;padding:7px}.mesa-score strong{font-size:20px}.mesa-score-row{gap:10px}.mesa-pile.pos-2{top:31px}.mesa-pile.pos-0{bottom:24px}.mesa-pile.pos-1{left:5%;top:50%;transform:translateY(-50%)}.mesa-pile.pos-3{right:1%;top:50%;transform:translateY(-50%)}.mesa-pile{width:78px;height:89px}.mesa-played{left:calc(var(--i)*14px);top:calc(var(--i)*5px);border-radius:4px}.mesa-empty{font-size:8px}.mesa-foreground{grid-template-columns:1fr;grid-template-rows:40px 1fr;gap:2px;padding:3px 10px 10px}.mesa-controls{max-width:none;justify-self:center;align-self:center;justify-content:center;flex-wrap:nowrap}.mesa-controls .mesa-button{font-size:10px;padding:8px}.mesa-hand{min-height:120px;padding-top:3px}.mesa-hand-card,.mesa-hand-empty{width:77px;height:115px}.mesa-status{bottom:192px;max-width:95vw;min-width:220px}.mesa-vira{bottom:19px;right:8%;font-size:7px}.mesa-vira .spanish-card{width:29px;height:44px}.mesa-deck{bottom:20px;font-size:7px}.mesa-deck .mesa-back{width:25px;height:36px}.mesa-backs.pos-1,.mesa-backs.pos-3{display:none}.mesa-backs.pos-2{left:calc(50% + 63px);top:15px}.mesa-backs .mesa-back{width:15px;height:23px}.mesa-dialog{padding:20px}.mesa-dialog h2{font-size:24px}}
+@media(max-height:600px) and (min-width:600px){.mesa-demo{--card-w:51px;grid-template-rows:43px minmax(0,1fr) 105px}.mesa-stage{margin:8px 65px 6px}.mesa-wood{padding:12px;border-radius:65px}.mesa-hand-card,.mesa-hand-empty{width:65px;height:98px}.mesa-foreground{padding:0 20px 5px;grid-template-columns:1fr auto 1fr}.mesa-hand{min-height:100px;gap:9px}.mesa-status{bottom:103px;padding:5px 10px;font-size:10px}.mesa-controls{max-width:235px}.mesa-meta{display:block;font-size:9px}.mesa-seat{padding:4px 8px}.mesa-seat small{display:none}.mesa-seat.pos-0{bottom:-10px}.mesa-seat.pos-2{top:-12px}.mesa-score{top:49%;padding:6px;min-width:150px}.mesa-score strong{font-size:21px}.mesa-score .score-label{margin-bottom:3px}.mesa-score .bazas{padding-top:3px;margin-top:3px}.mesa-pile.pos-2{top:22px}.mesa-pile.pos-0{bottom:16px}.mesa-pile.pos-1,.mesa-pile.pos-3{top:50%}.mesa-pile{width:95px;height:88px}.mesa-vira{bottom:14px}.mesa-backs.pos-2{top:17px}.mesa-deck{bottom:14px}.mesa-toolbar{padding:5px 18px}.mesa-toolbar .mesa-button{padding:6px 9px}}
+@media(prefers-reduced-motion:reduce){.mesa-demo *{animation:none!important;transition:none!important}}
+
+/* Cantos persistentes: las cartas existentes no se vuelven a crear ni animar. */
+.mesa-played{animation:none!important;transition:none!important}
+.mesa-hand-card:disabled{filter:none;opacity:1}
+.mesa-hand-slot{flex:none;width:clamp(85px,8vw,120px);height:clamp(126px,12vw,180px)}
+.mesa-status.thinking:before{animation:none}
+.mesa-speech{position:absolute;z-index:6;max-width:185px;padding:8px 12px;background:#fff3d2;color:#263746;border:1px solid #d0b579;border-radius:11px;font-size:12px;font-weight:800;box-shadow:0 3px 10px #001e3550;pointer-events:none}
+.mesa-speech[hidden],.mesa-call-panel[hidden],.mesa-history[hidden],.mesa-round-info[hidden]{display:none}
+.mesa-speech.pos-0{left:calc(50% + 87px);bottom:93px}
+.mesa-speech.pos-2{left:calc(50% + 87px);top:99px}
+.mesa-speech.pos-1{left:7%;top:calc(50% + 100px)}
+.mesa-speech.pos-3{right:5%;top:calc(50% + 100px)}
+.mesa-corner-score{position:absolute;z-index:3;display:grid;grid-template-columns:auto auto;column-gap:12px;align-items:center;background:#0b2c47ec;border:1px solid #b5d2e04d;padding:11px 14px;border-radius:12px;width:200px;box-shadow:0 5px 15px #03263e44}
+.mesa-corner-score span{font-size:11px;font-weight:bold;letter-spacing:1px}
+.mesa-corner-score strong{font:700 34px Georgia,serif;grid-row:1/3;grid-column:2;text-align:right;color:#f7d897}
+.mesa-corner-score small{font-size:9px;color:#bcd5e6;margin-top:4px}
+.mesa-corner-score em{grid-column:1/-1;font:10px Arial,sans-serif;color:#e7d3a8;margin-top:7px;line-height:1.3;max-height:28px;overflow:hidden}
+.rival-score{top:32px;left:7%}.our-score{bottom:30px;right:7%}
+.mesa-round-info{position:absolute;left:50%;top:49%;transform:translate(-50%,-50%);text-align:center;font-size:12px;color:#e4eff8;background:#113b5acc;border:1px solid #b5d2e030;border-radius:14px;padding:14px 18px;min-width:200px}
+.mesa-round-info b,.mesa-round-info span,.mesa-round-info small{display:block}.mesa-round-info span{margin-top:6px;color:#edcf91}.mesa-round-info small{margin-top:8px;font-size:10px;color:#a9c7dd}
+.mesa-call-panel{position:absolute;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,44%);max-height:85%;overflow:auto;background:#102d45f5;border:1px solid #f5ce7e99;border-radius:16px;padding:18px;box-shadow:0 14px 40px #00101f66;text-align:center}
+.mesa-call-panel .call-eyebrow{color:#f5ce7e;font-size:9px;letter-spacing:1.3px;font-weight:bold}
+.mesa-call-panel h3{font:700 21px Georgia,serif;margin:9px 0}.mesa-call-panel p{font-size:12px;color:#d2e3f0;line-height:1.5;margin:9px 0}
+.call-responses{padding:0;margin:13px 0;list-style:none;text-align:left}.call-responses li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #ffffff20;font-size:11px}.call-responses b{color:#f5d89d;font-size:10px;text-align:right}
+.call-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}.call-actions label{font-size:10px;display:flex;align-items:center;gap:7px}.call-actions input{width:55px;background:#fff;color:#173651;border:1px solid #d4dfeb;border-radius:6px;padding:7px}
+.mesa-call-panel>.mesa-button{margin:4px 3px}.call-reminder{color:#f5d89d!important}
+.mesa-controls{max-width:330px}.mesa-vira{width:68px;left:20%;right:auto;bottom:25px}.mesa-vira .spanish-card{width:68px;height:102px;margin:5px 0 0}
+.mesa-history{z-index:13}.mesa-meta{font-size:10px}.mesa-status{max-width:620px}
+@media(min-width:1600px){.mesa-hand-slot{width:130px;height:195px}}
+@media(max-width:1000px){.mesa-corner-score{width:160px;padding:9px 11px}.mesa-corner-score strong{font-size:29px}.mesa-speech{max-width:140px;font-size:10px;padding:6px 9px}.mesa-call-panel{width:38%;padding:12px}.mesa-call-panel h3{font-size:18px}.mesa-call-panel .mesa-button{font-size:10px;padding:9px}.mesa-vira{left:15%}}
+@media(max-width:850px){.mesa-hand-slot{width:80px;height:120px}.mesa-controls{max-width:168px}.mesa-speech.pos-0{left:calc(50% + 64px);bottom:105px}.mesa-speech.pos-2{left:calc(50% + 64px);top:80px}.mesa-speech.pos-1{left:2%;top:calc(50% + 66px)}.mesa-speech.pos-3{right:0;top:calc(50% + 66px)}.mesa-corner-score{width:134px;padding:7px 9px;column-gap:7px}.mesa-corner-score span{font-size:9px;letter-spacing:.4px}.mesa-corner-score small{font-size:8px}.mesa-corner-score strong{font-size:26px}.mesa-corner-score em{font-size:8px}.rival-score{top:27px;left:4%}.our-score{bottom:24px;right:4%}.mesa-vira{left:18%;width:51px;bottom:26px}.mesa-vira .spanish-card{width:51px;height:77px}.mesa-call-panel{width:45%;max-height:91%}.mesa-round-info{min-width:140px;font-size:10px;padding:10px}.mesa-round-info small{font-size:9px}}
+@media(max-width:520px){
+ .mesa-demo{grid-template-rows:57px minmax(0,1fr) 224px}.mesa-status{bottom:213px;font-size:9px;max-width:94vw;min-width:0;width:90vw;padding:6px 8px}.mesa-foreground{grid-template-rows:65px 1fr}.mesa-controls{max-width:100%;flex-wrap:wrap;gap:4px}.mesa-controls .mesa-button{font-size:9px;padding:7px 9px}.mesa-hand-slot{width:77px;height:115px}
+ .mesa-corner-score{width:99px;padding:6px 7px;border-radius:9px;column-gap:4px}.mesa-corner-score span{font-size:8px;letter-spacing:.3px}.mesa-corner-score strong{font-size:23px}.mesa-corner-score small{font-size:7px}.mesa-corner-score em{font-size:7px;margin-top:4px;max-height:25px}.rival-score{left:5%;top:88px}.our-score{right:4%;bottom:98px}
+ .mesa-vira{left:7%;bottom:15px;width:44px}.mesa-vira .spanish-card{width:44px;height:66px}.mesa-deck{display:none}.mesa-speech{max-width:102px;font-size:9px;padding:5px 7px}.mesa-speech.pos-0{left:auto;right:0;bottom:28px}.mesa-speech.pos-2{left:auto;right:0;top:40px}.mesa-speech.pos-1{left:-9px;top:calc(50% + 60px)}.mesa-speech.pos-3{right:-9px;top:calc(50% + 60px)}
+ .mesa-call-panel{width:77%;padding:11px;max-height:88%;border-radius:12px}.mesa-call-panel h3{font-size:17px}.mesa-call-panel p{font-size:10px;margin:7px 0}.call-responses{margin:8px 0}.call-responses li{padding:7px 0;font-size:10px}.call-responses b{font-size:9px}.mesa-call-panel .mesa-button{font-size:10px;padding:8px 10px}.mesa-round-info{width:140px;min-width:0}
+ .mesa-toolbar-actions{gap:3px}.mesa-toolbar .mesa-button{padding:7px 6px;font-size:9px}.mesa-brand{font-size:12px}.mesa-brand small{font-size:7px}
+}
+@media(max-height:600px) and (min-width:600px){.mesa-hand-slot{width:65px;height:98px}.mesa-corner-score{width:128px;padding:5px 8px}.mesa-corner-score strong{font-size:24px}.mesa-corner-score em{max-height:18px;font-size:8px;margin-top:3px}.rival-score{top:18px;left:7%}.our-score{bottom:17px;right:7%}.mesa-vira{width:40px;left:20%;bottom:15px}.mesa-vira .spanish-card{width:40px;height:60px}.mesa-call-panel{max-height:96%;width:38%;padding:10px}.mesa-call-panel h3{font-size:16px;margin:5px 0}.mesa-call-panel p{font-size:10px;margin:5px 0}.call-responses{margin:6px 0}.call-responses li{padding:5px 0}.mesa-call-panel .mesa-button{font-size:10px;padding:7px}.mesa-speech.pos-0{bottom:27px;left:calc(50% + 64px)}.mesa-speech.pos-2{top:31px;left:calc(50% + 64px)}.mesa-speech.pos-1,.mesa-speech.pos-3{top:calc(50% + 60px)}.mesa-controls{max-width:240px}.mesa-controls .mesa-button{padding:7px 9px}}
+
+
+/* Nuevos repartos: animación visual solo al comenzar una mano, no entre turnos. */
+.mesa-deck.reshuffling .mesa-back{animation:mesa-shuffle .8s ease-in-out both}
+@keyframes mesa-shuffle{0%,100%{transform:translateX(0) rotate(0deg)}30%{transform:translateX(24px) rotate(11deg)}65%{transform:translateX(-20px) rotate(-8deg)}}
+@media(prefers-reduced-motion:reduce){.mesa-deck.reshuffling .mesa-back{animation:none}}
+/* Cartas escalonadas: la siguiente no debe cubrir los valores de la anterior. */
+.mesa-pile{--played-step:clamp(23px,3.3vw,43px);width:calc(var(--card-w) + 2*var(--played-step));height:calc(var(--card-h) + 28px)}
+.mesa-played{left:calc(var(--i)*var(--played-step));top:calc(var(--i)*5px);animation:none!important;transition:none!important}
+.mesa-played.covered{box-shadow:0 0 0 2px #f2c46e}
+.mesa-covered-back{width:100%;height:100%;border:3px solid #e8d5a9;background:repeating-linear-gradient(45deg,#1a3c5c 0 6px,#7897b2 6px 8px,#233e5a 8px 14px);border-radius:6px}
+@media(max-width:850px){.mesa-pile{--played-step:22px}}
+@media(max-width:520px){.mesa-pile{--played-step:17px}.mesa-controls{flex-wrap:wrap}}
+
+
+/* v4: mesa compacta, mazo grande, dorso inspirado en la foto y manos animadas. */
+.mesa-demo{--card-w:clamp(48px,5.1vw,80px)}
+.mesa-stage{width:calc(100% - 54px);max-width:990px;margin:12px auto 8px}
+.mesa-wood{border-radius:clamp(42px,7vw,92px);padding:17px}
+.mesa-pile{--played-step:clamp(27px,3vw,39px)}
+.mesa-pile.pos-0{bottom:19px;left:48%}
+.mesa-pile.pos-2{top:35px;left:48%}
+.mesa-pile.pos-1{left:7%}.mesa-pile.pos-3{right:7%}
+.mesa-hand-slot{width:clamp(75px,6.5vw,97px);height:clamp(113px,9.75vw,146px)}
+.mesa-hand-card,.mesa-hand-empty{width:100%;height:100%}
+.mesa-foreground{padding-bottom:12px}
+.mesa-deck{bottom:13px;left:9%;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mesa-deck .mesa-back{width:61px;height:90px;border-radius:6px;border:2px solid #eadfc4;box-shadow:2px 2px #e6dfc2,4px 4px #223549,7px 8px 13px #051b2c}
+.mesa-back,.mesa-covered-back{background:#f8f7f2 var(--back-design) center/cover no-repeat!important}
+.mesa-demo{--back-design:url("cards/back-blue.svg")}
+.mesa-demo[data-back="red"]{--back-design:url("cards/back-red.svg")}
+.mesa-deck.reshuffling .mesa-back{animation:mesa-shuffle .95s ease-in-out both}
+.mesa-shuffle-hands{position:absolute;left:50%;top:23px;width:160px;transform:translateX(-50%);pointer-events:none;display:none;font-size:49px}
+.mesa-shuffle-hands .shuffle-hand{position:absolute;top:0;filter:drop-shadow(0 3px 3px #102637)}
+.shuffle-left{left:-4px}.shuffle-right{right:-4px}
+.mesa-deck.reshuffling .mesa-shuffle-hands{display:block;animation:hands-fade 1.2s ease-out both}
+.mesa-deck.reshuffling .shuffle-left{animation:shuffle-left .95s ease-in-out both}
+.mesa-deck.reshuffling .shuffle-right{animation:shuffle-right .95s ease-in-out both}
+@keyframes hands-fade{0%,85%{opacity:1}100%{opacity:0}}
+@keyframes shuffle-left{0%,100%{transform:translateX(-18px) rotate(-18deg)}50%{transform:translateX(30px) rotate(10deg)}}
+@keyframes shuffle-right{0%,100%{transform:translateX(18px) rotate(18deg)}50%{transform:translateX(-30px) rotate(-10deg)}}
+.back-choice{white-space:nowrap}
+.back-choice select{background:#162f48;color:#f8e8c7;border:1px solid #91a2b6;border-radius:7px;padding:6px;font-size:11px}
+.mesa-deck .deck-title{font-weight:bold;letter-spacing:1px;color:#e8c988}
+@media(max-width:1000px){
+ .mesa-stage{width:calc(100% - 50px);margin:12px auto 8px}
+ .mesa-pile.pos-1{left:8%}.mesa-pile.pos-3{right:8%}
+}
+@media(max-width:600px){
+ .mesa-demo{--card-w:46px}
+ .mesa-stage{width:calc(100% - 34px);margin:12px auto 8px}
+ .mesa-pile{--played-step:16px}
+ .mesa-pile.pos-0{left:50%;bottom:19px}
+ .mesa-pile.pos-2{left:50%;top:24px}
+ .mesa-pile.pos-1{left:2%}.mesa-pile.pos-3{right:2%}
+ .mesa-hand-slot{width:67px;height:101px}
+ .mesa-deck{display:flex;left:8%;bottom:8px;transform:scale(.63);transform-origin:bottom left}
+ .mesa-toolbar .back-choice{display:none}
+ .mesa-controls{max-width:100%;flex-wrap:wrap}
+ .mesa-status{max-width:88vw}
+}
+@media(max-height:600px) and (min-width:600px){
+ .mesa-stage{width:min(86%,900px)}
+ .mesa-demo{--card-w:49px}
+ .mesa-hand-slot{width:62px;height:94px}
+ .mesa-deck{transform:scale(.55);transform-origin:bottom left}
+}
+@media(prefers-reduced-motion:reduce){
+ .mesa-deck.reshuffling .mesa-shuffle-hands,.mesa-deck.reshuffling .shuffle-hand{animation:none;display:none}
+}
+
+/* Tomo de reglas navegable y legible en computadora y móvil. */
+.mesa-dialog.tomo-dialog{width:min(790px,96vw);max-height:min(85vh,860px);overflow-y:auto}
+.tomo-intro{background:#1e4764;border:1px solid #a9bdd240;border-radius:13px;padding:12px 15px;margin-bottom:14px}
+.tomo-intro b{color:#f5d38c}.tomo-intro p{margin:7px 0}
+.tomo-chapter{background:#183952;border:1px solid #7799b43b;border-radius:11px;margin:6px 0;padding:0 12px}
+.tomo-chapter summary{cursor:pointer;padding:13px 8px;color:#f4d58e;font-weight:700;font-size:14px}
+.tomo-chapter summary:hover{color:white}
+.tomo-chapter p{font-size:13px;line-height:1.65;margin:8px 8px 12px}
+.tomo-dialog a{color:#f6d38b;text-decoration:underline}
+@media(max-width:600px){.mesa-dialog.tomo-dialog{width:97vw;max-height:90vh;padding:14px}.tomo-chapter summary{font-size:12px;padding:9px 5px}.tomo-chapter p{font-size:11px}}
